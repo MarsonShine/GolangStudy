@@ -15,10 +15,6 @@ func NewService(doc *Document) (p *Service) {
 	return
 }
 
-func SomeMetho() {
-	return
-}
-
 var routeTable = [][2]string{
 	{"POST /drawings", "PostDrawings"},
 	{"GET /drawings/*", "GetDrawing"},
@@ -36,7 +32,6 @@ func (p *Service) PostShapes(aShape *serviceShape, env *restrpc.Env) (err error)
 	if err != nil {
 		return
 	}
-
 	return drawing.Add(aShape.Get())
 }
 
