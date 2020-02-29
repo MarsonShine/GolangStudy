@@ -1,6 +1,7 @@
 package main
 
 import (
+	"GolangStudy/src/QPaint/paintserver"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -24,3 +25,10 @@ var (
 	apiReverseProxy = newReverseProxy("http://localhost:9999")
 	wwwServer       = http.FileServer(http.Dir("www"))
 )
+
+func main() {
+	go paintserver.Main()
+	http.Handle("/api/", http.StripPrefix("/api/", apiReverseProxy))
+	http.HandleFunc("/", handleDefault)
+	http.ListenAndServe(":8888", nil)
+}
