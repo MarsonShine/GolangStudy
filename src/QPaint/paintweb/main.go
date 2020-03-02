@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GolangStudy/src/QPaint/paintserver"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -27,8 +27,22 @@ var (
 )
 
 func main() {
-	go paintserver.Main()
-	http.Handle("/api/", http.StripPrefix("/api/", apiReverseProxy))
-	http.HandleFunc("/", handleDefault)
-	http.ListenAndServe(":8888", nil)
+	// go paintserver.Main()
+	// http.Handle("/api/", http.StripPrefix("/api/", apiReverseProxy))
+	// http.HandleFunc("/", handleDefault)
+	// http.ListenAndServe(":8888", nil)
+
+	for i := 0; i <= 3; i++ {
+		defer fmt.Println(i)
+	}
+	fmt.Println("==================")
+	p := f()
+	fmt.Println(p)
+}
+
+func f() (result int) {
+	// defer func() {
+	// 	result *= 7
+	// }()
+	return 6
 }

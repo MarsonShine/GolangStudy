@@ -1,13 +1,19 @@
 package paintserver
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/http/restrpc"
 )
 
+type M map[string]interface{}
+
+type RouteTable map[string]func(w http.ResponseWriter, req *http.Request, args []string)
+
 type Service struct {
-	doc *Document
+	doc        *Document
+	routeTable RouteTable
 }
 
 func NewService(doc *Document) (p *Service) {
@@ -37,6 +43,20 @@ func (p *Service) PostShapes(aShape *serviceShape, env *restrpc.Env) (err error)
 
 func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err error) {
 	return
+}
+
+func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) (m M, err error) {
+	log.Println(req.Method, req.URL)
+	drawing, err := p.doc.Add()
+	if err != nil {
+		return
+	}
+	return M{"id": drawing.ID}, nil
+}
+
+func (p *Service) DeleteDrawing(env *restrpc.Env) (err error) {
+	id := env.Args[0]
+	return p.doc.Delete(id)
 }
 
 type serviceShape struct {
