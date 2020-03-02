@@ -3,11 +3,24 @@ package paintserver
 import (
 	"log"
 	"net/http"
+	"syscall"
 
 	"github.com/http/restrpc"
+	"gopkg.in/mgo.v2"
 )
 
-type M map[string]interface{}
+func mgoError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if err == mgo.ErrNotFound {
+		return syscall.ENOENT
+	}
+	if mgo.IsDup(err) {
+		return syscall.EEXIST
+	}
+	return err
+}
 
 type RouteTable map[string]func(w http.ResponseWriter, req *http.Request, args []string)
 
@@ -47,11 +60,11 @@ func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err
 
 func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) (m M, err error) {
 	log.Println(req.Method, req.URL)
-	drawing, err := p.doc.Add()
+	drawing, err := p.doc.Add(1) // TODO
 	if err != nil {
 		return
 	}
-	return M{"id": drawing.ID}, nil
+	return M{"id": drawing.id}, nil
 }
 
 func (p *Service) DeleteDrawing(env *restrpc.Env) (err error) {

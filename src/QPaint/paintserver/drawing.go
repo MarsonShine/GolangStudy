@@ -5,7 +5,34 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
+
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
+
+// UserID 用户 ID
+type UserID = uint64
+
+// M 只是一个缩略写法
+type M = bson.M
+
+// DBName 是默认 QPaint Database Name
+var DBName = "qpaint"
+
+type QShape map[string]interface{}
+
+func (shape QShape) GetID() string {
+	if val, ok1 := shape["id"]; ok1 {
+		if id, ok2 := val.(string); ok2 { // val 转为 string 类型，val.(type) 将 val 转为 type 类型
+			return id
+		}
+	}
+	return ""
+}
+
+func (shape QShape) setID(id string) {
+	shape[id] = id
+}
 
 // ---------------------------------------------------
 
@@ -54,144 +81,155 @@ func (p *shapeOnDrawing) delete() {
 // ---------------------------------------------------
 
 type Drawing struct {
-	ID     string
-	idBase int64
-
-	mutex  sync.Mutex
-	shapes map[ShapeID]*shapeOnDrawing
-	list   shapeOnDrawing
+	id      bson.ObjectId
+	session *mgo.Session
 }
 
-func newDrawing(id string) *Drawing {
+func newDrawing(id bson.ObjectId, session *mgo.Session) *Drawing {
 	p := &Drawing{
-		ID:     id,
-		shapes: make(map[ShapeID]*shapeOnDrawing),
+		id:      id,
+		session: session,
 	}
-	p.list.init()
 	return p
 }
 
+func (p *Drawing) GetID() string {
+	return p.id.Hex()
+}
+
+// Sync 同步 drawing 的修改
 func (p *Drawing) Sync(shapes []ShapeID, changes []Shape) (err error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	dgshapes := make([]*shapeOnDrawing, len(shapes))
-	for i, id := range shapes {
-		if dgshape, ok := p.shapes[id]; ok {
-			dgshape.delete()
-			dgshapes[i] = dgshape
-		} else {
-			dgshape := new(shapeOnDrawing)
-			dgshapes[i] = dgshape
-			p.shapes[id] = dgshape
+	c := p.session.Copy()
+	defer c.Close()
+	shapeColl := c.DB(DBName).C("shape")
+	for _, change := range changes {
+		spid := change.GetID()
+		_, err = shapeColl.Upsert(M{
+			"dgid": p.id,
+			"spid": spid,
+		}, M{
+			"dgid":  p.id,
+			"spid":  spid,
+			"shape": change,
+		})
+		if err != nil {
+			return mgoError(err)
 		}
 	}
-	head := &p.list
-	for item := head.front; item != head; item = item.front {
-		delete(p.shapes, item.data.GetID())
-	}
-	head.init()
-	for _, dgshape := range dgshapes {
-		head.insertBack(dgshape)
-	}
-	for _, change := range changes {
-		id := change.GetID()
-		p.shapes[id].data = change
-	}
-	return
+	drawingColl := c.DB(DBName).C("drawing")
+	return mgoError(drawingColl.UpdateId(p.id, M{
+		"$set": M{"shapes": shapes},
+	}))
 }
 
 func (p *Drawing) Add(shape Shape) (err error) {
-	id := shape.GetID()
-	dgshape := &shapeOnDrawing{
-		data: shape,
+	c := p.session.Copy()
+	defer c.Close()
+	shapeColl := c.DB(DBName).C("shape")
+	spid := shape.GetID()
+	err = shapeColl.Insert(M{
+		"dgid":  p.id,
+		"spid":  spid,
+		"shape": shape,
+	})
+	if err != nil {
+		return mgoError(err)
 	}
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	if _, ok := p.shapes[id]; ok {
-		return syscall.EEXIST
-	}
-	p.list.insertBack(dgshape)
-	p.shapes[id] = dgshape
-	return
+	drawingColl := c.DB(DBName).C("drwaing")
+	return mgoError(drawingColl.Update(p.id, M{
+		"$push": M{"shapes": spid},
+	}))
 }
 
 func (p *Drawing) List() (shapes []Shape, err error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	n := len(p.shapes)
-	shapes = make([]Shape, n)
-	item := p.list.front
-	for i := 0; i < n; i++ {
-		shapes[i] = item.data
-		item = item.front
+	c := p.session.Copy()
+	defer c.Close()
+	var result []struct {
+		ID    string `bson:"spid"`
+		Shape QShape `bson:"shape"`
+	}
+	shapeColl := c.DB(DBName).C("shape")
+	shapeColl.Find(M{
+		"dgid": p.id,
+	}).Select(M{
+		"spid": 1, "shape": 1,
+	}).All(&result)
+	if err != nil {
+		return nil, mgoError(err)
+	}
+	shapes = make([]Shape, len(result))
+	for i, item := range result {
+		item.Shape.setID(item.ID)
+		shapes[i] = item.Shape
 	}
 	return
 }
 
+// Get 取出某个图形。
 func (p *Drawing) Get(id ShapeID) (shape Shape, err error) {
-	if dgshape, ok := p.shapes[id]; ok {
-		return dgshape.data, nil
+	c := p.session.Copy()
+	defer c.Close()
+	var o struct {
+		Shape QShape `bson:"shape"`
 	}
-	return nil, syscall.ENOENT
+	shapeColl := c.DB(DBName).C("shape")
+	err = shapeColl.Find(M{
+		"dgid": p.id,
+		"spid": id,
+	}).Select(M{
+		"shape": 1,
+	}).One(&o)
+	if err != nil {
+		return nil, mgoError(err)
+	}
+	o.Shape.setID(id)
+	return o.Shape, nil
 }
 
+// Set 修改某个图形。
 func (p *Drawing) Set(id ShapeID, shape Shape) (err error) {
-	if shape.GetID() != id {
+	if shape.GetID() != "" {
 		return syscall.EINVAL
 	}
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	if dgshape, ok := p.shapes[id]; ok {
-		dgshape.data = shape
-		return nil
-	}
-	return syscall.ENOENT
+	c := p.session.Copy()
+	defer c.Close()
+	shapeColl := c.DB(DBName).C("shape")
+	return mgoError(shapeColl.Update(M{
+		"dgid": p.id,
+		"spid": id,
+	}, M{
+		"$set": M{"shape": shape},
+	}))
 }
 
 func (p *Drawing) SetZorder(id ShapeID, zorder string) (err error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	if shape, ok := p.shapes[id]; ok {
-		switch zorder {
-		case "top":
-			shape.delete()
-			p.list.insertBack(shape)
-		case "bottom":
-			shape.delete()
-			p.list.insertFront(shape)
-		case "front":
-			if shape.front != &p.list {
-				shape.moveFront()
-			}
-		case "back":
-			if shape.back != &p.list {
-				shape.moveBack()
-			}
-		default:
-			return syscall.EINVAL
-		}
-		return nil
-	}
-	return syscall.ENOENT
+	return nil // TODO
 }
 
+// Delete 删除某个图形。
 func (p *Drawing) Delete(id ShapeID) (err error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	dgshape, ok := p.shapes[id]
-	if !ok {
-		return syscall.ENOENT
+	c := p.session.Copy()
+	defer c.Close()
+	drawingColl := c.DB(DBName).C("drawing")
+	err = drawingColl.UpdateId(p.id, M{
+		"$pull": M{"shapes": id},
+	})
+	if err != nil {
+		return mgoError(err)
 	}
-	dgshape.delete()
-	delete(p.shapes, id)
-	return
+	shapeColl := c.DB(DBName).C("shape")
+	return mgoError(shapeColl.Remove(M{
+		"dgid": p.id,
+		"spid": id,
+	}))
 }
 
 // ---------------------------------------------------
 
 type Document struct {
-	mutex sync.Mutex
-	data  map[string]*Drawing
+	mutex   sync.Mutex
+	data    map[string]*Drawing
+	session *mgo.Session
 }
 
 func NewDocument() *Document {
@@ -201,13 +239,20 @@ func NewDocument() *Document {
 	}
 }
 
-func (p *Document) Add() (drawing *Drawing, err error) {
-	id := makeDrawingID()
-	drawing = newDrawing(id)
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.data[id] = drawing
-	return
+func (p *Document) Add(uid UserID) (drawing *Drawing, err error) {
+	c := p.session.Copy()
+	defer c.Close()
+	drawingColl := c.DB(DBName).C("drawing")
+	id := bson.NewObjectId()
+	err = drawingColl.Insert(M{
+		"_id":    id,
+		"uid":    uid,
+		"shapes": []ShapeID{},
+	})
+	if err != nil {
+		return
+	}
+	return newDrawing(id, p.session), nil
 }
 
 func (p *Document) Get(id string) (drawing *Drawing, err error) {
