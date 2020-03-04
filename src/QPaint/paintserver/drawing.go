@@ -249,6 +249,7 @@ func (p *Document) Add(uid UserID) (drawing *Drawing, err error) {
 		"uid":    uid,
 		"shapes": []ShapeID{},
 	})
+
 	if err != nil {
 		return
 	}

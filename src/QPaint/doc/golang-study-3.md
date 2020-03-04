@@ -1,4 +1,4 @@
-# golang 自学系列（三）—— if，for 语句
+# golang 自学系列（三）—— if，for，channel
 
 一般情况下，if 语句跟大多数语言的 if 判断语句一样，根据一个 boolean 表达式结果来执行两个分支逻辑。
 
@@ -86,7 +86,7 @@ RangeClause = [ ExpressionList "=" | IdentifierList ":=" ] "range" Expression .
 
 range 表达式 x 要在循环体开始之前计算一次，有一个例外：如果存在最多一个迭代变量以及 len(x) 是常熟，那么 range 表达式就不会计算。下面是官网给出的例子
 
-```
+```go
 var testdata *struct {
 	a *[7]int
 }
@@ -123,8 +123,132 @@ for w := range ch {
 for range ch {}
 ```
 
-# 待弄清的语句
+# Channel 类型
 
-`chan` 关键字:	// TODO
+`chan` 关键字：起初这个官网没有查到具体对 chan 的解释，就只知道是一个关键字，后来经过一番资料查询，发现这个是用来方便创建 `channel` 类型的快捷方式。其默认值是 nil。
 
-`[]ShapeID{}` 表达式:  // TODO
+既然知道 chan 是用来创建 `channel` 的，那么我们就来看 `channel` 类型的定义：
+
+```
+A channel provides a mechanism for concurrently executing functions to communicate by sending and receiving values of a specified element type. The value of an uninitialized channel is nil.
+```
+
+就是说 channel 类型为并发运行函数提供一个机制，通过发送和接收指定元素类型的值通信。未分配的 channel 的值是 nil。
+
+在来了解下 `chan` 的操作符 <-，它表示指定 channel 方向、发送或接收。如果没有给定方向，就是双向。channel 被限制只能通过赋值或显示转换来发送或接收。
+
+```go
+chan T 	// 可以用来发送和接收 T 类型的值
+chan <- float64	// 只能被用于发送 64 位浮点数
+<- chan int	// 只能用于接收 int 数
+```
+
+官网还描述下面这种用法，说实话我没怎么看懂
+
+```go
+chan<- chan int    // same as chan<- (chan int)
+chan<- <-chan int  // same as chan<- (<-chan int)
+<-chan <-chan int  // same as <-chan (<-chan int)
+chan (<-chan int)
+```
+
+go 语言提供内置函数 `make` 来构建新的 channel 值，该函数传递 channel 类型参数和一个可选的容量（capacity）参数值
+
+```go
+make(chan int, 100)
+```
+
+其中的 100 是容量值（capacity），这个容量值是指 channel 内的缓冲大小。如果值为 0 说明没有缓冲，这种情况下只有当接受者和发送者准备好才能成功通讯。否则，只要这个缓冲块没满（推送）或不为空（接收），那已经缓冲的 channel 就能成功通信。
+
+channel 能通过调用方法 `close` 关闭。多值赋值通过接收操作符的形式报告这个接收的值是否在 channel 在关闭之前。
+
+单个 channel 能用在发送语句、接收操作符以及调用内置 `cap` 函数和 `len` 函数，也能在任意数量的 goroutline 使用，而不需要同步。通道是一个先进先出（FIFO）的队列。
+
+上面提到了两点，发送语句和接收操作符
+
+# send 语句
+
+简单来讲就是发送一个值给 channel。
+
+`ch <- 3` 意思是发送一个值 3 给 channel 变量 ch。如果 channel 关闭了，会报 run-time panic 错误。
+
+# 接收操作符
+
+对于 channel 类型的操作数 ch，接收操作符的值 <- ch 意思是从 channel 类型值 ch 接收的值。<- 右边是 channel 类型元素。表达式块只有在值可用才不会阻塞。所以空 channel 无法接受值，因为永远阻塞。
+
+现在来看一下 chan 的一些例子
+
+```go
+var c chan int	// nil
+c = make(chan int)	// 初始化
+fmt.Printf("c 的类型是%T \n", cc)	// chan int
+fmt.Printf("c 的值是%v \n", cc)	//	0xc0000820c0
+```
+
+这能看出 chan int 的值是一个地址，像是指针一样。不过目前我还是不知道这个具体的用法是什么，用在什么地方？
+
+而当我尝试读取值的时候，却发现好像一直在阻塞：
+
+```go
+c <- 3
+fmt.Printf("c 的值是%v \n", c)
+<-c
+fmt.Printf("c 的值是%v \n", c)
+```
+
+我想的是 chan 在发送时，没有接收前是堵塞的，所以一直没有执行下面的输出。所以我又在后面加了 `<- c` 让 c 接收。结果发现还是不执行上面的输出。
+
+后来又查了相关的资料，得知 channel 类型很像是一个通道，消费者-生产者之间的关系。
+
+于是我又写了下面代码
+
+```go
+cc := make(chan int)
+defer close(cc)
+cc <- 3 + 4
+i := <-cc
+fmt.Println(i)
+```
+
+断电调试发现（如何在 vscode 断电调试我稍微会另起文章说）程序运行到 cc <- 3 + 4 就不往下执行，进程也没结束，说明是阻塞的。从之前的概念上将，cc 初始化出来的类型是没有设置初始容量，即没有缓存，难道在不能发送数据了？为了验证想法，我在初始化 channel 的时候家了初始缓存 buffer：`cc := make(chan int, 100)`；能正常输出结果值。但是概念上并没有说没有缓冲区的就不能正常发送数据啊。
+
+在描述 send 语句的时候说过，在接收器准备好了，发送器才会被处理。按照这个结果来看，接收器是没有准备好的。那要怎么才能使接收器准备好呢？
+
+我又查了资料，发现基本上都是这么种写法，以上面的代码为前提
+
+```go
+cc := make(chan int)
+defer close(cc)
+go func() {
+  cc <- 3 + 4
+}()
+i := <-cc
+fmt.Println(i)
+```
+
+这样就是正常的。难道要把发送器以一种函数调用的形式存在？
+
+我又尝试把立即执行函数改为普通函数
+
+```go
+cc := make(chan int)
+defer close(cc)
+fchan(cc)
+i := <-cc
+fmt.Println(i)
+```
+
+结果发现还是不行，这个问题先放一边吧。等以后有时间在仔细学习一下。
+
+// TODO Range 也是可以处理 chan 
+
+# 初始化数组
+
+`[]type{}` 当我看到这个语句的时候，我内心是奔溃的，因为突然看到这种写法的我不知道这属于哪个特征，都不好查关键字资料。刚开始我以为是 type 类型的数组，然后后面再接一个空对象 `{}`。但是翻遍了特性，都没看到这种概念。后来直接写了一个例子，查看具体的输出
+
+```go
+var sa = []string{}
+fmt.Printf("sa 的值是%v \n", sa)	//sa 的值是[] 
+```
+
+发现它就是一个数组，并没有什么对象。后来我尝试去掉后面 `{}` 发现根本通不过编译，这才知道，这就是初始化一个 string 数组。

@@ -80,10 +80,25 @@ func main() {
 		fmt.Print(" ")
 	}
 
+	fmt.Println("==================chan ===================")
+	// var c chan int
+	// fmt.Println(c)
+	cc := make(chan int)
+	defer close(cc)
+	go fchan(cc)
+	i := <-cc
+	fmt.Println(i)
+
+	var sa = []string{}
+	fmt.Printf("sa 的值是%v \n", sa)
+	var sb = []string
+	fmt.Printf("sb 的值是%v \n", sb)
 	// key == last map key encountered in iteration
 	// val == map[key]
 }
-
+func fchan(cc chan int) {
+	cc <- 3 + 4
+}
 func f() (result int) {
 	// defer func() {
 	// 	result *= 7
