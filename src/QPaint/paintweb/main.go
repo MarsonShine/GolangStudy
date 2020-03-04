@@ -91,8 +91,8 @@ func main() {
 
 	var sa = []string{}
 	fmt.Printf("sa 的值是%v \n", sa)
-	var sb = []string
-	fmt.Printf("sb 的值是%v \n", sb)
+	// var sb = []string 通不过编译
+	// fmt.Printf("sb 的值是%v \n", sb)
 	// key == last map key encountered in iteration
 	// val == map[key]
 }
