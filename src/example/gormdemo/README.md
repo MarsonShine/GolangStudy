@@ -1,3 +1,10 @@
+# 设置代理：
+
+```cmd
+$ go env -w GO111MODULE=on
+$ go env -w GOPROXY=https://goproxy.cn,direct
+```
+
 # 运行步骤
 
 1. 打开项目根目录
