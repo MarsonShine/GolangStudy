@@ -1,0 +1,14 @@
+{
+    "go.buildOnSave": "off",
+    "go.lintOnSave": "off",
+    "go.vetOnSave": "off",
+    "go.buildFlags": [],
+    "go.vetFlags": [],
+    "go.useCodeSnippetsOnFunctionSuggest": false,
+    "go.formatTool": "goreturns",
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": ["--disable=all"],
+    "go.formatFlags": [
+    "--disable=all"
+    ]
+}
