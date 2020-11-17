@@ -36,6 +36,7 @@ type User struct {
 	ActivedAt    sql.NullTime
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt // 关于软删除：https://gorm.io/docs/delete.html#Soft-Delete
 }
 
 type Model struct {
