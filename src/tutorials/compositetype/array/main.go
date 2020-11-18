@@ -29,6 +29,7 @@ func main() {
 	s := [...]int{1, 2, 3, 4, 5}
 	fmt.Printf("%T\n", s) // "[5]int"
 
+	q[2] = 4
 	// 可以指定索引和索引对应的值来初始化是数组
 	symbol := [...]string{USD: "$", EUR: "€", GBP: "￡", RMB: "￥"}
 	fmt.Println(RMB, symbol[RMB]) // "3 ￥"
