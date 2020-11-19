@@ -10,8 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -19,7 +21,7 @@ import (
 const stopTimeout = time.Second * 10
 
 func main() {
-	db, err := gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	if err != nil {
 		panic("连接数据库失败！")
 	}
@@ -43,17 +45,56 @@ func main() {
 	startHTTPServer()
 }
 
+// 公共返回体
+type DataResponse struct {
+	Success bool
+	Message string
+	Data    interface{}
+}
+
+func getUserListHandler(w http.ResponseWriter, r *http.Request) {
+	users := appservice.GetUserAll()
+	data := &DataResponse{Success: true, Message: "success", Data: []string{}}
+	if users != nil {
+		data.Data = users
+	}
+	// var jsonResponse = []byte(data)
+	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
+func getUserHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	data := &DataResponse{Success: false}
+	if err != nil {
+		data.Message = "false"
+	} else {
+		user := appservice.GetUser(id)
+		data.Success = true
+		data.Data = user
+	}
+	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
 func startHTTPServer() *http.Server {
-	srv := &http.Server{Addr: ":8080"}
+	router := mux.NewRouter().StrictSlash(true)
+	srv := &http.Server{Addr: ":8080", Handler: router}
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool)
 	signal.Notify(sigs, os.Interrupt)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "hello world\n")
 	})
 
-	http.HandleFunc("/user/create", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/user", getUserListHandler)
+	router.HandleFunc("/user/{id}", getUserHandler)
+
+	router.HandleFunc("/user/create", func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var u struct {
 			Name     string

@@ -73,12 +73,29 @@ func CreateUserService(name string, email *string, age uint8, birthday *time.Tim
 	}
 }
 
+// 获取所有用户
+func GetUserAll() *[]models.User {
+	var mydb = openDbConnection()
+	var users []models.User
+	result := mydb.Select([]string{}).Find(&users)
+	if result.RowsAffected > 0 {
+		return &users
+	}
+	return nil
+}
+
+// 查询指定用户
+func GetUser(id int) models.User {
+	var mydb = openDbConnection()
+	return *(UserService{mydb}.Get(uint(id)))
+}
+
 func createUser(uo contracts.UserOperation, user models.User) {
 	uo.Create(&user)
 }
 
 func openDbConnection() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	if err != nil {
 		panic("连接数据库失败！")
 	}
