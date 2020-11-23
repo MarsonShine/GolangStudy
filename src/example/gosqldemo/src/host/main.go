@@ -39,6 +39,7 @@ func startHTTPServer() *http.Server {
 	router.HandleFunc("/user/{id:[0-9]+}", getUserHandler)
 
 	router.HandleFunc("/user/create", createUserHandler)
+	router.HandleFunc("/user/delete/{id:[0-9]+}", deleteUserHandler)
 
 	go func() {
 		<-sigs
@@ -107,6 +108,23 @@ func createUserHandler(w http.ResponseWriter, r *http.Request) {
 		jsonResponse = []byte(`{"sucess":true, "message": "success!"}`)
 	}
 
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, err := strconv.Atoi(vars["id"])
+	data := dto.NewDataResponse()
+	if err != nil {
+		data.Message = "false"
+	} else {
+		_, err := userservice.NewUserService().DeleteUserById(userID)
+		if err != nil {
+			data.SetMessage(err.Error())
+		}
+	}
+	jsonResponse, _ := json.Marshal(data)
 	w.Header().Set("content-type", "text/json")
 	w.Write(jsonResponse)
 }

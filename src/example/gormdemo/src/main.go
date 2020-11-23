@@ -55,6 +55,17 @@ type DataResponse struct {
 	Data    interface{}
 }
 
+func NewDataResponse() DataResponse {
+	dr := DataResponse{}
+	dr.Success = dr.Message == ""
+	return dr
+}
+
+func (dr DataResponse) SetMessage(msg string) {
+	dr.Message = msg
+	dr.Success = false
+}
+
 func getUserListHandler(w http.ResponseWriter, r *http.Request) {
 	users := appservice.GetUserAll()
 	data := &DataResponse{Success: true, Message: "success", Data: []string{}}
@@ -95,7 +106,7 @@ func startHTTPServer() *http.Server {
 	})
 
 	router.HandleFunc("/user", getUserListHandler)
-	router.HandleFunc("/user/{id}", getUserHandler)
+	router.HandleFunc("/user/{id:[0-9]+}", getUserHandler)
 
 	router.HandleFunc("/user/create", func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
@@ -115,6 +126,7 @@ func startHTTPServer() *http.Server {
 		w.Header().Set("content-type", "text/json")
 		w.Write(jsonResponse)
 	})
+	router.HandleFunc("/user/delete/{id:[0-9]+}", deleteUserHandler)
 
 	go func() {
 		<-sigs
@@ -132,4 +144,18 @@ func startHTTPServer() *http.Server {
 	<-done
 
 	return srv
+}
+
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, err := strconv.Atoi(vars["id"])
+	data := NewDataResponse()
+	if err != nil {
+		data.Message = "false"
+	} else {
+		data.Success = appservice.DeleteUserByUserID(uint(userID))
+	}
+	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
 }

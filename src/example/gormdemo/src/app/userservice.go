@@ -90,12 +90,17 @@ func GetUser(id int) models.User {
 	return *(UserService{mydb}.Get(uint(id)))
 }
 
+func DeleteUserByUserID(id uint) bool {
+	var mydb = openDbConnection()
+	return UserService{mydb}.Delete(id)
+}
+
 func createUser(uo contracts.UserOperation, user models.User) {
 	uo.Create(&user)
 }
 
 func openDbConnection() *gorm.DB {
-	dsn := "root:123456@tcp(127.0.0.1:3306/testdb?charset=utf8mb4&parseTime=True&loc=Local)"
+	dsn := "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
 	// db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {

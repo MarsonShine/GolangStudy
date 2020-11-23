@@ -56,3 +56,17 @@ func (repository UserRepository) CreateUser(u domain.User) error {
 	}
 	return nil
 }
+
+func (repository UserRepository) DeleteUser(id int) (bool, error) {
+	defer func() {
+		if r := recover(); r != nil {
+
+		}
+	}()
+	user := repository.GetUser(id)
+	if user.IsEmpty() {
+		return true, nil
+	}
+	_, err := db.Exec("delete from users where id = ?", id)
+	return err == nil, err
+}

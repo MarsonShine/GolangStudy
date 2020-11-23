@@ -36,3 +36,7 @@ type User struct {
 	UpdatedAt    sql.NullString `db:"updated_at"`
 	DeletedAt    sql.NullString `db:"deleted_at"`
 }
+
+func (u User) IsEmpty() bool {
+	return User{} == u
+}

@@ -1,6 +1,7 @@
 package userservice
 
 import (
+	"fmt"
 	"gosqldemo/src/domain"
 	"gosqldemo/src/repository"
 )
@@ -35,4 +36,11 @@ func (us *UserAppService) CreateUser(user domain.User) error {
 		panic("email必填")
 	}
 	return r.CreateUser(user)
+}
+
+func (us *UserAppService) DeleteUserById(userID int) (bool, error) {
+	if userID < 1 {
+		return false, fmt.Errorf("参数错误")
+	}
+	return r.DeleteUser(userID)
 }

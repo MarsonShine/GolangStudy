@@ -6,3 +6,14 @@ type DataResponse struct {
 	Message string
 	Data    interface{}
 }
+
+func NewDataResponse() DataResponse {
+	dr := DataResponse{}
+	dr.Success = dr.Message == ""
+	return dr
+}
+
+func (dr DataResponse) SetMessage(msg string) {
+	dr.Message = msg
+	dr.Success = false
+}
