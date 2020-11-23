@@ -12,3 +12,13 @@ $ go build -gcflags -S main.go
 $ GOSSAFUNC=main go build main.go
 ```
 
+# 目录
+
+- 编译原理
+- 数据结构
+- 语言基础
+- 常用关键字
+- 并发
+- 内存管理
+  - 垃圾收集器
+- 元编程
