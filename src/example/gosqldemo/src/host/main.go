@@ -36,25 +36,9 @@ func startHTTPServer() *http.Server {
 	})
 
 	router.HandleFunc("/user", getUserListHandler)
-	router.HandleFunc("/user/{id}", getUserHandler)
+	router.HandleFunc("/user/{id:[0-9]+}", getUserHandler)
 
-	router.HandleFunc("/user/create", func(w http.ResponseWriter, r *http.Request) {
-		decoder := json.NewDecoder(r.Body)
-		var u struct {
-			Name     string
-			Email    *string
-			Age      uint8
-			Birthday *domain.JSONTime
-		}
-		err := decoder.Decode(&u)
-		if err != nil {
-			panic(err)
-		}
-
-		var jsonResponse = []byte(`{"sucess":true, "message": "success!"}`)
-		w.Header().Set("content-type", "text/json")
-		w.Write(jsonResponse)
-	})
+	router.HandleFunc("/user/create", createUserHandler)
 
 	go func() {
 		<-sigs
@@ -86,16 +70,43 @@ func getUserListHandler(w http.ResponseWriter, r *http.Request) {
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	_, err := strconv.Atoi(vars["id"])
+	userID, err := strconv.Atoi(vars["id"])
 	data := &dto.DataResponse{Success: false}
 	if err != nil {
 		data.Message = "false"
 	} else {
-		user := domain.User{}
+		var user domain.User
+		user = userservice.NewUserService().GetUserById(userID)
 		data.Success = true
 		data.Data = user
 	}
 	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
+func createUserHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var u struct {
+		Name     string
+		Email    *string
+		Age      uint8
+		Birthday *domain.JSONTime
+	}
+	err := decoder.Decode(&u)
+	if err != nil {
+		panic(err)
+	}
+	t := time.Time(*u.Birthday)
+
+	err = userservice.NewUserService().CreateUser(domain.User{Name: u.Name, Email: u.Email, Age: u.Age, Birthday: &t})
+	var jsonResponse []byte
+	if err != nil {
+		jsonResponse = []byte(`{"sucess":false, "message": "` + err.Error() + `"}`)
+	} else {
+		jsonResponse = []byte(`{"sucess":true, "message": "success!"}`)
+	}
+
 	w.Header().Set("content-type", "text/json")
 	w.Write(jsonResponse)
 }

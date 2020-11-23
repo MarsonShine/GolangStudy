@@ -22,15 +22,11 @@ func (repository *UserRepository) New() {
 }
 
 // 获取所有用户
-func (repository UserRepository) GetUserAll() *[]domain.User {
-	rows, err := db.Query("SELECT * FROM users")
-	var users *[]domain.User
-	if err == nil {
-		for rows.Next() {
-			var user domain.User
-			err = rows.Scan(&user)
-			*users = append(*users, user)
-		}
+func (repository UserRepository) GetUserAll() []domain.User {
+	users := []domain.User{}
+	err := db.Select(&users, "SELECT id,name,email,age,birthday FROM users")
+	if err != nil {
+		panic(err)
 	}
 	return users
 }
@@ -38,7 +34,7 @@ func (repository UserRepository) GetUserAll() *[]domain.User {
 // 获取指定用户
 func (repository UserRepository) GetUser(id int) domain.User {
 	var user domain.User
-	err := db.Get(&user, "select * from users where id = ?", id)
+	err := db.Get(&user, "select id,name,email,age,birthday,member_number,actived_at,created_at,updated_at,deleted_at from users where id = ?", id)
 	if err != nil {
 		panic("用户不存在")
 	}
@@ -46,13 +42,17 @@ func (repository UserRepository) GetUser(id int) domain.User {
 }
 
 // 创建用户
-func (repository UserRepository) CreateUser(u domain.User) {
-	rows, _ := db.Query("select * from users where email = ?", u.Email)
-	if !rows.Next() {
-		panic(fmt.Sprintf("用户已存在: %s\n", *u.Email))
-	}
-	_, err := db.Exec("insert into users (name,email,age,birthday,createdAt) values (?, ?, ?, ?, ?)")
+func (repository UserRepository) CreateUser(u domain.User) error {
+	rows, err := db.Query("select * from users where email = ?", u.Email)
 	if err != nil {
-		panic(fmt.Sprintf("用户添加失败: %s\n", err.Error()))
+		return fmt.Errorf(err.Error())
 	}
+	if rows.Next() {
+		return fmt.Errorf("用户已存在: %s\n", *u.Email)
+	}
+	_, err = db.Exec("insert into users (name,email,age,birthday,created_at) values (?, ?, ?, ?, NOW())", u.Name, u.Email, u.Age, u.Birthday)
+	if err != nil {
+		return fmt.Errorf("用户添加失败: %s\n", err.Error())
+	}
+	return nil
 }

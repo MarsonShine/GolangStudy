@@ -30,9 +30,9 @@ type User struct {
 	Email        *string
 	Age          uint8
 	Birthday     *time.Time
-	MemberNumber sql.NullString
-	ActivedAt    sql.NullTime
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    time.Time
+	MemberNumber sql.NullString `db:"member_number"`
+	ActivedAt    sql.NullTime   `db:"actived_at"`
+	CreatedAt    time.Time      `db:"created_at"`
+	UpdatedAt    sql.NullString `db:"updated_at"`
+	DeletedAt    sql.NullString `db:"deleted_at"`
 }
