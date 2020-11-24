@@ -1,9 +1,9 @@
 package appservice
 
 import (
-	"fmt"
 	"gormdemo/src/contracts"
 	"gormdemo/src/models"
+	"sync"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -13,6 +13,10 @@ import (
 // 代表用户操作
 type UserService struct {
 	db *gorm.DB
+}
+
+func NewUserService(gormDB *gorm.DB) UserService {
+	return UserService{db: gormDB}
 }
 
 // 创建用户
@@ -62,20 +66,25 @@ func (us UserService) Delete(id uint) bool {
 	return true
 }
 
-func CreateUserService(name string, email *string, age uint8, birthday *time.Time) {
-	var mydb = openDbConnection()
+func CreateUserService(gormDB *gorm.DB, name string, email *string, age uint8, birthday *time.Time) {
+	// var mydb = openDbConnection()
+	// sqlDB, _ := mydb.DB()
+	// defer sqlDB.Close()
 	var user models.User
-	result := mydb.First(&user, "email = ?", *email)
-	if result.RowsAffected > 0 {
-		panic(fmt.Sprintf("已经存在重复的用户 email:%s", *email))
-	} else {
-		createUser(UserService{db: mydb}, models.User{Name: name, Email: email, Age: age, Birthday: user.Birthday})
-	}
+	// result := mydb.First(&user, "email = ?", *email)
+	// if result.RowsAffected > 0 {
+	// 	panic(fmt.Sprintf("已经存在重复的用户 email:%s", *email))
+	// } else {
+	// 	createUser(UserService{db: mydb}, models.User{Name: name, Email: email, Age: age, Birthday: user.Birthday})
+	// }
+	createUser(UserService{db: gormDB}, models.User{Name: name, Email: email, Age: age, Birthday: user.Birthday})
 }
 
 // 获取所有用户
 func GetUserAll() *[]models.User {
 	var mydb = openDbConnection()
+	sqlDB, _ := mydb.DB()
+	defer sqlDB.Close()
 	var users []models.User
 	result := mydb.Select([]string{}).Find(&users)
 	if result.RowsAffected > 0 {
@@ -92,6 +101,8 @@ func GetUser(id int) models.User {
 
 func DeleteUserByUserID(id uint) bool {
 	var mydb = openDbConnection()
+	// sqlDB, _ := mydb.DB()
+	// defer sqlDB.Close()
 	return UserService{mydb}.Delete(id)
 }
 
@@ -100,11 +111,32 @@ func createUser(uo contracts.UserOperation, user models.User) {
 }
 
 func openDbConnection() *gorm.DB {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
 	// db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	// sqlDB, err := db.DB()
+	// sqlDB.SetMaxIdleConns(10)
+	// sqlDB.SetMaxOpenConns(200)
 	if err != nil {
 		panic("连接数据库失败！")
 	}
 	return db
+}
+
+var (
+	once       sync.Once
+	dbInstance *gorm.DB
+)
+
+func GetDbConnection() *gorm.DB {
+	once.Do(func() {
+		dsn := "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
+		// db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
+		var err error
+		dbInstance, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			panic("连接数据库失败！")
+		}
+	})
+	return dbInstance
 }

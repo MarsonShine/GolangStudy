@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	hello(2)
 	for _, url := range os.Args[1:] {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -22,4 +23,15 @@ func main() {
 		}
 		fmt.Printf("%s", b)
 	}
+}
+
+func hello2() int {
+	a := 2
+	b := 3
+	return a + b
+}
+
+func hello(a int) int {
+	c := a + 2
+	return c
 }

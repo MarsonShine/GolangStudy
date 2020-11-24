@@ -26,7 +26,7 @@ func main() {
 
 func startHTTPServer() *http.Server {
 	router := mux.NewRouter().StrictSlash(true)
-	srv := &http.Server{Addr: ":8080", Handler: router}
+	srv := &http.Server{Addr: ":8081", Handler: router}
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool)
 	signal.Notify(sigs, os.Interrupt)

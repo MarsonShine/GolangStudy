@@ -25,7 +25,9 @@ func (repository *UserRepository) New() {
 func (repository UserRepository) GetUserAll() []domain.User {
 	users := []domain.User{}
 	err := db.Select(&users, "SELECT id,name,email,age,birthday FROM users")
+	db.Close()
 	if err != nil {
+		db.Close()
 		panic(err)
 	}
 	return users
@@ -35,7 +37,9 @@ func (repository UserRepository) GetUserAll() []domain.User {
 func (repository UserRepository) GetUser(id int) domain.User {
 	var user domain.User
 	err := db.Get(&user, "select id,name,email,age,birthday,member_number,actived_at,created_at,updated_at,deleted_at from users where id = ?", id)
+	defer db.Close()
 	if err != nil {
+		db.Close()
 		panic("用户不存在")
 	}
 	return user
@@ -43,13 +47,14 @@ func (repository UserRepository) GetUser(id int) domain.User {
 
 // 创建用户
 func (repository UserRepository) CreateUser(u domain.User) error {
-	rows, err := db.Query("select * from users where email = ?", u.Email)
+	_, err := db.Query("select * from users where email = ?", u.Email)
+	db.Close()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
-	if rows.Next() {
-		return fmt.Errorf("用户已存在: %s\n", *u.Email)
-	}
+	// if rows.Next() {
+	// 	return fmt.Errorf("用户已存在: %s\n", *u.Email)
+	// }
 	_, err = db.Exec("insert into users (name,email,age,birthday,created_at) values (?, ?, ?, ?, NOW())", u.Name, u.Email, u.Age, u.Birthday)
 	if err != nil {
 		return fmt.Errorf("用户添加失败: %s\n", err.Error())

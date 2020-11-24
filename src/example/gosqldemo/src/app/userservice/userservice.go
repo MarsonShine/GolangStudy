@@ -32,9 +32,9 @@ func (us *UserAppService) CreateUser(user domain.User) error {
 	if len(user.Name) == 0 {
 		panic("用户姓名必填")
 	}
-	if len(*user.Email) == 0 {
-		panic("email必填")
-	}
+	// if len(*user.Email) == 0 {
+	// 	panic("email必填")
+	// }
 	return r.CreateUser(user)
 }
 
