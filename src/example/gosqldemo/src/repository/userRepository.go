@@ -12,22 +12,25 @@ type UserRepository struct {
 }
 
 var db *sqlx.DB
-
+var once sync.Once
 var mu sync.Mutex
 
 func (repository *UserRepository) New() {
-	mu.Lock()
-	defer mu.Unlock()
-	db = OpenDbConnection()
+	db = singletonInstance()
+}
+
+func singletonInstance() *sqlx.DB {
+	once.Do(func() {
+		db = OpenDbConnection()
+	})
+	return db
 }
 
 // 获取所有用户
 func (repository UserRepository) GetUserAll() []domain.User {
 	users := []domain.User{}
 	err := db.Select(&users, "SELECT id,name,email,age,birthday FROM users")
-	db.Close()
 	if err != nil {
-		db.Close()
 		panic(err)
 	}
 	return users
@@ -47,15 +50,15 @@ func (repository UserRepository) GetUser(id int) domain.User {
 
 // 创建用户
 func (repository UserRepository) CreateUser(u domain.User) error {
-	_, err := db.Query("select * from users where email = ?", u.Email)
-	db.Close()
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
+	// _, err := db.Query("select * from users where email = ?", u.Email)
+	// if err != nil {
+	// 	db.Close()
+	// 	return fmt.Errorf(err.Error())
+	// }
 	// if rows.Next() {
 	// 	return fmt.Errorf("用户已存在: %s\n", *u.Email)
 	// }
-	_, err = db.Exec("insert into users (name,email,age,birthday,created_at) values (?, ?, ?, ?, NOW())", u.Name, u.Email, u.Age, u.Birthday)
+	_, err := db.Exec("insert into users (name,email,age,birthday,created_at) values (?, ?, ?, ?, NOW())", u.Name, u.Email, u.Age, u.Birthday)
 	if err != nil {
 		return fmt.Errorf("用户添加失败: %s\n", err.Error())
 	}

@@ -6,6 +6,7 @@ import (
 	"gosqldemo/src/app/userservice"
 	"gosqldemo/src/domain"
 	"gosqldemo/src/dto"
+	"gosqldemo/src/repository"
 	"io"
 	"log"
 	"net/http"
@@ -15,13 +16,20 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
 )
 
 const stopTimeout = time.Second * 10
 
 func main() {
-
+	initialDataBase()
 	startHTTPServer()
+}
+
+var db *sqlx.DB
+
+func initialDataBase() {
+	db = repository.OpenDbConnection()
 }
 
 func startHTTPServer() *http.Server {

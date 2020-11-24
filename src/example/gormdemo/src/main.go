@@ -22,7 +22,6 @@ import (
 
 const stopTimeout = time.Second * 10
 
-// const dsn = "root:k8-sgM&W@tcp(192.168.3.125:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
 const dsn = "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
 
 // const dsn = "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"

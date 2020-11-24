@@ -21,5 +21,25 @@
    }
    ```
 
-   
+4. gorm 与 sqlx 相关的 db 示例都只能初始化一次，然后传参，如果每次请求创建一次 db 则会报 `to many connections` 错误。
 
+   1. 疑问：将 sql db 示例化成单例，这也有隐患，在并发时（insert + update）会出现并发问题，我认为是要每次请求创建一个 db 实例，**然后及时 close 掉。**
+
+5. 设置 mysql 连接池，首先可以先查看 mysql 默认的最大连接池和全局最大连接池：
+
+   ```cmd
+   show variables like '%max_connections%';	// 显示最大连接属
+   show global status like 'Max_used_connections'; // 服务器响应的最大连接数
+   show status like 'Threads%'; // 实时查看占用的连接数和线程数
+   ```
+
+   然后在初始化 db 时设置相关的信息：
+
+   ```go
+   sqlDB, err := sql.Open("mysql", dsn)	// 初始化 db
+   sqlDB.SetMaxIdleConns(10)	// 设置最大空闲连接数
+   sqlDB.SetMaxOpenConns(100)	// 设置最大连接数
+   sqlDB.SetConnMaxLifetime(time.Millisecond * 200)	// 每个连接的最大生存周期
+   ```
+
+   
