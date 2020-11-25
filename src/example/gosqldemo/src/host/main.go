@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"gosqldemo/src/app/productservice"
 	"gosqldemo/src/app/userservice"
 	"gosqldemo/src/domain"
 	"gosqldemo/src/dto"
@@ -48,7 +49,7 @@ func startHTTPServer() *http.Server {
 
 	router.HandleFunc("/user/create", createUserHandler)
 	router.HandleFunc("/user/delete/{id:[0-9]+}", deleteUserHandler)
-
+	productRouterInitialize(router)
 	go func() {
 		<-sigs
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
@@ -72,9 +73,7 @@ func getUserListHandler(w http.ResponseWriter, r *http.Request) {
 	// var jsonResponse = []byte(data)
 	var users = userservice.NewUserService().GetAllUsers()
 	data.Data = users
-	jsonResponse, _ := json.Marshal(data)
-	w.Header().Set("content-type", "text/json")
-	w.Write(jsonResponse)
+	writeBackStream(w, data)
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,9 +88,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		data.Success = true
 		data.Data = user
 	}
-	jsonResponse, _ := json.Marshal(data)
-	w.Header().Set("content-type", "text/json")
-	w.Write(jsonResponse)
+	writeBackStream(w, data)
 }
 
 func createUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +129,62 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 			data.SetMessage(err.Error())
 		}
 	}
+	writeBackStream(w, data)
+}
+
+func productRouterInitialize(router *mux.Router) {
+	router.HandleFunc("/product/create", createProductHandler)
+	router.HandleFunc("/product/{id:[0-9]+}", productDetailHandler)
+	router.HandleFunc("/product/update", productUpdateHandler)
+}
+
+func createProductHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var p domain.Product
+	data := dto.NewDataResponse()
+	err := decoder.Decode(&p)
+	if err != nil {
+		data.SetMessage(err.Error())
+	} else {
+		err := productservice.NewProductService().CreateProduct(&p)
+		if err != nil {
+			data.SetMessage(err.Error())
+		}
+	}
+	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
+func productDetailHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	data := dto.NewDataResponse()
+	productID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		data.Message = "false"
+	} else {
+		productDetail := productservice.NewProductService().GetProductDetail(uint(productID))
+		data.Data = productDetail
+		data.Success = true
+	}
+	writeBackStream(w, data)
+}
+
+func productUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var p domain.ProductUpdated
+	data := dto.NewDataResponse()
+	err := decoder.Decode(&p)
+	if err != nil {
+		data.SetMessage(err.Error())
+	} else {
+		r := productservice.NewProductService().UpdateProductAndUser(&p)
+		data.Success = r
+	}
+	writeBackStream(w, data)
+}
+
+func writeBackStream(w http.ResponseWriter, data interface{}) {
 	jsonResponse, _ := json.Marshal(data)
 	w.Header().Set("content-type", "text/json")
 	w.Write(jsonResponse)

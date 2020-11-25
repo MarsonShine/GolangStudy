@@ -3,27 +3,13 @@ package repository
 import (
 	"fmt"
 	"gosqldemo/src/domain"
-	"sync"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type UserRepository struct {
 }
 
-var db *sqlx.DB
-var once sync.Once
-var mu sync.Mutex
-
 func (repository *UserRepository) New() {
 	db = singletonInstance()
-}
-
-func singletonInstance() *sqlx.DB {
-	once.Do(func() {
-		db = OpenDbConnection()
-	})
-	return db
 }
 
 // 获取所有用户
@@ -40,9 +26,7 @@ func (repository UserRepository) GetUserAll() []domain.User {
 func (repository UserRepository) GetUser(id int) domain.User {
 	var user domain.User
 	err := db.Get(&user, "select id,name,email,age,birthday,member_number,actived_at,created_at,updated_at,deleted_at from users where id = ?", id)
-	defer db.Close()
 	if err != nil {
-		db.Close()
 		panic("用户不存在")
 	}
 	return user

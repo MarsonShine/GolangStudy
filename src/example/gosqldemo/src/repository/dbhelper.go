@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"sync"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -9,6 +10,10 @@ import (
 )
 
 const dsn = ""
+
+var db *sqlx.DB
+var once sync.Once
+var mu sync.Mutex
 
 func OpenDbConnection() *sqlx.DB {
 	// db, err := sqlx.Open("sqlite3", "./src/test.db")
@@ -19,5 +24,12 @@ func OpenDbConnection() *sqlx.DB {
 	if err != nil {
 		panic("连接数据库失败！")
 	}
+	return db
+}
+
+func singletonInstance() *sqlx.DB {
+	once.Do(func() {
+		db = OpenDbConnection()
+	})
 	return db
 }
