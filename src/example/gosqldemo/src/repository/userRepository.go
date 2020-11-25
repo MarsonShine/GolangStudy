@@ -29,7 +29,7 @@ func singletonInstance() *sqlx.DB {
 // 获取所有用户
 func (repository UserRepository) GetUserAll() []domain.User {
 	users := []domain.User{}
-	err := db.Select(&users, "SELECT id,name,email,age,birthday FROM users")
+	err := db.Select(&users, "SELECT id,name,email,age,birthday,member_number,actived_at,created_at,updated_at,deleted_at FROM users limit 1000")
 	if err != nil {
 		panic(err)
 	}

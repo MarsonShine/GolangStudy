@@ -39,6 +39,8 @@ type User struct {
 	DeletedAt    gorm.DeletedAt // 关于软删除：https://gorm.io/docs/delete.html#Soft-Delete
 }
 
+func (u User) IsEmpty() bool { return u == User{} || u.ID < 1 }
+
 type Model struct {
 	ID        uint `gorm:"primaryKey"`
 	CreatedAt time.Time

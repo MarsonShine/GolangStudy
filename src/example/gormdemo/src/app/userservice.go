@@ -114,9 +114,9 @@ func openDbConnection() *gorm.DB {
 	dsn := "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
 	// db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	// sqlDB, err := db.DB()
-	// sqlDB.SetMaxIdleConns(10)
-	// sqlDB.SetMaxOpenConns(200)
+	sqlDB, err := db.DB()
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(200)
 	if err != nil {
 		panic("连接数据库失败！")
 	}

@@ -22,7 +22,7 @@ import (
 const stopTimeout = time.Second * 10
 
 func main() {
-	initialDataBase()
+	// initialDataBase()
 	startHTTPServer()
 }
 

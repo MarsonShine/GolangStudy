@@ -12,7 +12,7 @@ const dsn = ""
 
 func OpenDbConnection() *sqlx.DB {
 	// db, err := sqlx.Open("sqlite3", "./src/test.db")
-	db, err := sqlx.Connect("mysql", "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local")
+	db, err := sqlx.Connect("mysql", "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local")
 	db.SetMaxIdleConns(10)
 	db.SetMaxOpenConns(130)
 	db.SetConnMaxLifetime(time.Millisecond * 200)

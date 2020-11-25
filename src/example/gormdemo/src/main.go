@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const stopTimeout = time.Second * 10
@@ -58,9 +59,9 @@ func main() {
 
 // 公共返回体
 type DataResponse struct {
-	Success bool
-	Message string
-	Data    interface{}
+	Success bool        `json:"success"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 func initializeDataBase() {
@@ -97,9 +98,7 @@ func getUserListSimpleHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = gormDB.Select([]string{}).Find(&users).DB()
 
 	data.Data = users
-	jsonResponse, _ := json.Marshal(data)
-	w.Header().Set("content-type", "text/json")
-	w.Write(jsonResponse)
+	writeBackStream(w, data)
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -113,9 +112,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		data.Success = true
 		data.Data = user
 	}
-	jsonResponse, _ := json.Marshal(data)
-	w.Header().Set("content-type", "text/json")
-	w.Write(jsonResponse)
+	writeBackStream(w, data)
 }
 
 func startHTTPServer() *http.Server {
@@ -153,6 +150,8 @@ func startHTTPServer() *http.Server {
 	})
 	router.HandleFunc("/user/delete/{id:[0-9]+}", deleteUserHandler)
 
+	productRouterInitialize(router)
+
 	go func() {
 		<-sigs
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
@@ -171,6 +170,68 @@ func startHTTPServer() *http.Server {
 	return srv
 }
 
+func productRouterInitialize(router *mux.Router) {
+	router.HandleFunc("/product/create", createProductHandler)
+	router.HandleFunc("/product/{id:[0-9]+}", productDetailHandler)
+	router.HandleFunc("/product/update", productUpdateHandler)
+}
+
+func createProductHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var p models.Product
+	data := NewDataResponse()
+	err := decoder.Decode(&p)
+	if err != nil {
+		data.SetMessage(err.Error())
+	} else {
+		err := appservice.NewProductService(gormDB).CreateProduct(&p)
+		if err != nil {
+			data.SetMessage(err.Error())
+		}
+	}
+	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
+func productDetailHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	data := NewDataResponse()
+	productID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		data.Message = "false"
+	} else {
+		productDetail := appservice.NewProductService(gormDB).GetProductDetail(uint(productID))
+		data.Data = productDetail
+		data.Success = true
+	}
+	writeBackStream(w, data)
+}
+
+func productUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var p appservice.ProductUpdated
+	data := NewDataResponse()
+	err := decoder.Decode(&p)
+	if err != nil {
+		data.SetMessage(err.Error())
+	} else {
+		r, err := appservice.NewProductService(gormDB).UpdateProductAndUser(&p)
+		if err != nil {
+			data.SetMessage(err.Error())
+		} else {
+			data.Success = r
+		}
+	}
+	writeBackStream(w, data)
+}
+
+func writeBackStream(w http.ResponseWriter, data interface{}) {
+	jsonResponse, _ := json.Marshal(data)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["id"])
@@ -180,9 +241,7 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		data.Success = appservice.NewUserService(gormDB).Delete(uint(userID))
 	}
-	jsonResponse, _ := json.Marshal(data)
-	w.Header().Set("content-type", "text/json")
-	w.Write(jsonResponse)
+	writeBackStream(w, data)
 }
 
 func openDbConnection() *gorm.DB {
@@ -193,7 +252,9 @@ func openDbConnection() *gorm.DB {
 	sqlDB.SetConnMaxLifetime(time.Millisecond * 200)
 	db, err := gorm.Open(mysql.New(mysql.Config{
 		Conn: sqlDB,
-	}), &gorm.Config{})
+	}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Error),
+	})
 	if err != nil {
 		sqlDB.Close()
 		panic("连接数据库失败！")
