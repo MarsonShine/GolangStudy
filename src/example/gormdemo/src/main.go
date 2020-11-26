@@ -248,7 +248,7 @@ func openDbConnection() *gorm.DB {
 	// db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	sqlDB, err := sql.Open("mysql", dsn)
 	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxOpenConns(200)
 	sqlDB.SetConnMaxLifetime(time.Millisecond * 200)
 	db, err := gorm.Open(mysql.New(mysql.Config{
 		Conn: sqlDB,

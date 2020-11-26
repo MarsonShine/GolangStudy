@@ -39,7 +39,7 @@
    sqlDB, err := sql.Open("mysql", dsn)	// 初始化 db
    sqlDB.SetMaxIdleConns(10)	// 设置最大空闲连接数
    sqlDB.SetMaxOpenConns(100)	// 设置最大连接数
-   sqlDB.SetConnMaxLifetime(time.Millisecond * 200)	// 每个连接的最大生存周期
+   sqlDB.SetConnMaxLifetime(time.Millisecond * 200)	// 每个连接的最大生存周期，一般情况是不用设置的
    ```
 
-   
+6. 设置每个连接的生存周期，在高并发测试下（500 个用户，循环 200 次，10 万个请求），会报 `Only one usage of each socket address (protocol/network address/port) is normally permitted.`，这个错误是因为 mysql 连接耗尽了 socket 数导致的错误，在 mysql 服务器下输入以下命令查看 socket 连接数发现在没有设置 `SetConnMaxLifetime`，socket 连接数就是 `SetMaxOpenConns` 设置的最大连接数。就不会存在这个问题，具体原因还没有查明！

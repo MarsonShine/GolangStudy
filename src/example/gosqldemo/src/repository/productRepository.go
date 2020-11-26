@@ -29,6 +29,7 @@ func (repository *ProductRepository) GetProductDetail(productID uint) domain.Pro
 	where p.id=?`
 	productDetail := domain.ProductDto{}
 	rows, err := db.Queryx(sql, productID)
+	defer rows.Close()
 	if err != nil {
 		return productDetail
 	}
@@ -47,7 +48,8 @@ func (repository *ProductRepository) UpdateProductAndUser(pu *domain.ProductUpda
 	if product.IsEmpty() {
 		return false
 	}
-	user := UserRepository{}.GetUser(int(product.UserID))
+	var user domain.User
+	db.Get(&user, "select id,name,email,age,birthday,member_number,actived_at,created_at,updated_at,deleted_at from users where id = ?", product.UserID)
 	if user.IsEmpty() {
 		return false
 	}
