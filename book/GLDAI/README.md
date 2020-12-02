@@ -12,6 +12,14 @@ $ go build -gcflags -S main.go
 $ GOSSAFUNC=main go build main.go
 ```
 
+Go 反编译指令得到汇编治理
+
+```
+go tool compile -S -N -l main.go	// -N -l 是阻止编译器优化汇编代码
+```
+
+
+
 # 目录
 
 - 编译原理
