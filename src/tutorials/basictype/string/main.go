@@ -1,13 +1,13 @@
 package main
 
+// 关于字符串编码资料：https://blog.golang.org/strings
+//第i个字节并不一定是字符串的第i个字符，因为对于非ASCII字符的UTF8编码会要两个或多个字节。我们先简单说下字符的工作方式。
 import (
 	"bytes"
 	"fmt"
 	"strconv"
 	"unicode/utf8"
 )
-
-//第i个字节并不一定是字符串的第i个字符，因为对于非ASCII字符的UTF8编码会要两个或多个字节。我们先简单说下字符的工作方式。
 
 func main() {
 	s := "hello, world"
@@ -47,6 +47,18 @@ func main() {
 
 	// 字符串转换
 	convert()
+
+	const sample = "\xbd\xb2\x3d\xbc\x20\xe2\x8c\x98"
+	fmt.Println(sample) // 这里会乱码
+	// 为了输出真正的内容，可以下面几种方法
+	// 方法一：分割开一个个字节输出
+	for i := 0; i < len(sample); i++ {
+		fmt.Printf("%x ", sample[i])
+	}
+	// 方法二：以正确的编码格式输出
+	fmt.Printf("%x\n", sample)
+	// 方式三：用转义符输出
+	fmt.Printf("%q\n", sample)
 }
 
 func convert() {
