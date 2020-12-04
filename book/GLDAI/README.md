@@ -12,6 +12,7 @@ $ go build -gcflags -S main.go
 
 ```cmd
 $ GOSSAFUNC=main go build main.go
+# 注意，在 windows 环境下，这个命令在 git bash 下运行才有效果
 ```
 
 Go 反编译指令得到汇编治理
