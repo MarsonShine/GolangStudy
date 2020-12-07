@@ -8,11 +8,17 @@
 // context.WithTimeout() 会生成一个子上下文并返回用于取消该上下文的函数。所以父协程提前结束或是这个字协程主动取消都会引起该上下文的函数取消
 // context.WithValue 函数能从父上下文中创建一个子上下文
 
+// 信号量 semaphore：获取资源时将计数器减去对应的值，释放资源时再加回来
+// 计数器大于信号量的大小时就会进入休眠等待其它线程释放资源
+// sync/singleflight.Group: 它能够在一个服务中抑制对下游的多次重复请求。
+// 例如在 redis 缓冲击穿的情况下，大量的流量都会打到数据库上进而影响服务的尾延时
+// 这时就可以用 singleflight.Group 能有效的解决这个问题，它能够限制对同一个 Key 的多次重复请求，减少对下游的瞬时流量
 package main
 
 import (
 	"context"
 	"fmt"
+	"gldai/concurrentprogram/locks"
 	"time"
 )
 
@@ -35,6 +41,8 @@ func main() {
 		// default:
 		// 	fmt.Println("main done", ctx.Err())
 	}
+
+	locks.MethodCond()
 }
 
 func handle(ctx context.Context, duration time.Duration) {
