@@ -1,3 +1,4 @@
+// golang 内存模型 https://golang.org/ref/mem
 // context.Context 是用来设置截止日期、同步信号，传递请求相关值的结构体
 // 每个请求就是一个 goroutine
 // context.Context 的作用就是在不同 Goroutine 之间同步请求特定数据、取消信号以及处理请求的截止日期。
