@@ -1,0 +1,8 @@
+{"level":"info","t":"20201210_115810","caller":"gologdemo/main.go:89","msg":"logger construction succeeded","app":"test"}
+20201210_135758	info	gologdemo/main.go:89	logger construction succeeded	{"app": "test"}
+level=info t=20201210_143349 caller=gologdemo/main.go:91 msg="logger construction succeeded" app=test 
+level=info t=20201210_143638 caller=gologdemo/main.go:91 msg="logger construction succeeded" app=test 
+level=info#t=20201210_143720#caller=gologdemo/main.go:91#msg="logger construction succeeded"#app=test#
+#level=info##t=20201210_143757##caller=gologdemo/main.go:91##msg="logger construction succeeded"##app=test#
+level=info#t=20201210_150018#caller=gologdemo/main.go:91#msg="logger construction succeeded"#app=test#
+#level=info#t=20201210_150223#caller=gologdemo/main.go:91#msg="logger construction succeeded"#app=test#
