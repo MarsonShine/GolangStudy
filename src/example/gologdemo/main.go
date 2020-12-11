@@ -37,14 +37,14 @@ func logrusExample() {
 	}
 	defer file.Close()
 
-	fields := log.Fields{"userId": 12}
+	fields := log.Fields{"userId": 12, "requestId": "123456789"}
 	log.WithFields(fields).Info("user logged in")
 }
 
 func zaplogExample() {
 	// basicZaplogExample()
 	addCustomEncoder()
-	registerConfig()
+	// registerConfig()
 	basicConfigurationExample()
 }
 
@@ -79,7 +79,7 @@ func basicConfigurationExample() {
 			EncodeDuration: zapcore.SecondsDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		},
-		OutputPaths:      []string{"localhost:5044"},
+		OutputPaths:      []string{"stdout", "./tmp/logs"},
 		ErrorOutputPaths: []string{"stderr"},
 		InitialFields: map[string]interface{}{
 			"app": "test",
@@ -90,12 +90,12 @@ func basicConfigurationExample() {
 		panic(err)
 	}
 	defer logger.Sync()
-
 	logger.Info("logger construction succeeded")
+	logger.Error("logger construction falied")
 }
 
 func formatEncodeTime(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	enc.AppendString(fmt.Sprintf("%d%02d%02d_%02d%02d%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()))
+	enc.AppendString(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()))
 }
 
 func addCustomEncoder() {
@@ -104,7 +104,7 @@ func addCustomEncoder() {
 
 func registerConfig() {
 	buf := bytes.NewBuffer(nil)
-	zap.RegisterSink("localhost", func(u *url.URL) (zap.Sink, error) {
+	zap.RegisterSink("filebeat", func(u *url.URL) (zap.Sink, error) {
 		return privateServerSink{
 			zapcore.AddSync(buf),
 		}, nil
