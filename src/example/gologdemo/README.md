@@ -154,6 +154,12 @@ output.elasticsearch:
   password: "changeme"
 ```
 
+然后启动 filebeat，切换到安装目录执行以下命令：
+
+```bash
+.\filebeat.cmd -e -c .\filebeat.yml
+```
+
 这样就完成了对日志内容输出到 ElasticSearch，业务代码不需要做任何更改。
 
 > 当然，FileBeat 是中间件，可以使用在 Go 也能为 .NET 使用
