@@ -12,3 +12,8 @@ level=info#t=20201210_150018#caller=gologdemo/main.go:91#msg="logger constructio
 #level=error#t=2020-12-11 15:04:24#caller=gologdemo/main.go:94#msg="logger construction falied"#app=test#trace=main.basicConfigurationExample\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:94\nmain.zaplogExample\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:48\nmain.main\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:19\nruntime.main\n\tc:/go/src/runtime/proc.go:204#
 #level=info#t=2020-12-11 15:10:37#caller=gologdemo/main.go:93#msg="logger construction succeeded"#app=test#
 #level=error#t=2020-12-11 15:10:37#caller=gologdemo/main.go:94#msg="logger construction falied"#app=test#trace=main.basicConfigurationExample\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:94\nmain.zaplogExample\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:48\nmain.main\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:19\nruntime.main\n\tc:/go/src/runtime/proc.go:204#
+#level=info#t=2020-12-14 10:32:58#caller=fzlog/fzlog.go:38#msg="logger construction succeeded"##
+#level=info#t=2020-12-14 10:32:58#caller=fzlog/fzlog.go:17#msg="fzlog 初始化成功"##
+#level=info#t=2020-12-14 10:34:30#caller=fzlog/fzlog.go:38#msg="logger construction succeeded"##
+#level=info#t=2020-12-14 10:34:30#caller=fzlog/fzlog.go:17#msg="fzlog Info..."##
+#level=error#t=2020-12-14 10:34:30#caller=fzlog/fzlog.go:21#msg="fzlog Error..."##trace=golog/src/fzlog.FzLog.Error\n\tE:/repositories/GolangStudy/src/example/gologdemo/src/fzlog/fzlog.go:21\nmain.fzlogExample\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:57\nmain.main\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:21\nruntime.main\n\tc:/go/src/runtime/proc.go:204#

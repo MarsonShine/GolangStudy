@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"golog/logcore/encoder"
+	"golog/src/fzlog"
 	"net/url"
 	"os"
 	"time"
@@ -16,7 +17,8 @@ import (
 
 func main() {
 	// logrusExample()
-	zaplogExample()
+	// zaplogExample()
+	fzlogExample()
 }
 
 func logrusExample() {
@@ -46,6 +48,13 @@ func zaplogExample() {
 	addCustomEncoder()
 	// registerConfig()
 	basicConfigurationExample()
+}
+
+func fzlogExample() {
+	logger := fzlog.CreateLog()
+	logger.Info("fzlog Info...")
+	logger.Debug("fzlog Debug...")
+	logger.Error("fzlog Error...")
 }
 
 func basicZaplogExample() {
