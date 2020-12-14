@@ -28,4 +28,7 @@ Go 网络轮询器主要核心功能是就是“事件循环”：
 2. 多路复用等待读写事件的返回
 
 关于 network 底层知识移步：https://github.com/MarsonShine/Books/blob/master/CSAPP/docs/concurrency-program.md#io-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8
+
+系统监控
+运行时通过系统监控来触发线程的抢占、网络的轮询和垃圾回收，保证 Go 语言运行时的可用性。系统监控能够很好地解决尾延迟的问题，减少调度器调度 Goroutine 的饥饿问题并保证计时器在尽可能准确的时间触发。
 */
