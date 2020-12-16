@@ -17,3 +17,31 @@ level=info#t=20201210_150018#caller=gologdemo/main.go:91#msg="logger constructio
 #level=info#t=2020-12-14 10:34:30#caller=fzlog/fzlog.go:38#msg="logger construction succeeded"##
 #level=info#t=2020-12-14 10:34:30#caller=fzlog/fzlog.go:17#msg="fzlog Info..."##
 #level=error#t=2020-12-14 10:34:30#caller=fzlog/fzlog.go:21#msg="fzlog Error..."##trace=golog/src/fzlog.FzLog.Error\n\tE:/repositories/GolangStudy/src/example/gologdemo/src/fzlog/fzlog.go:21\nmain.fzlogExample\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:57\nmain.main\n\tE:/repositories/GolangStudy/src/example/gologdemo/main.go:21\nruntime.main\n\tc:/go/src/runtime/proc.go:204#
+#level=info#t=2020-12-16 16:31:34#caller=fzlog/fzlog.go:62#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 16:33:28#caller=fzlog/fzlog.go:62#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:24:26#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:28:08#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:33:31#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:36:35#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:37:20#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:38:59#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:42:15#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:48:14#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:48:48#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:49:21#caller=fzlog/fzlog.go:89#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:54:18#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:55:42#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 17:56:36#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:00:14#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:00:26#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:05:23#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:06:19#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:06:28#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:08:48#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:09:01#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:14:41#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:14:53#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 18:14:58#caller=fzlog/fzlog.go:67#msg="这是一个测试demo"##
+#level=info#t=2020-12-16 18:29:09#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"#platformId=requestId=userflag=#
+#level=info#t=2020-12-16 18:29:33#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"#platformId=requestId=userflag=#
+#level=info#t=2020-12-16 18:29:33#caller=fzlog/fzlog.go:67#msg="这是一个测试demo"#platformId=requestId=userflag=#

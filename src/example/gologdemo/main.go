@@ -18,7 +18,11 @@ import (
 func main() {
 	// logrusExample()
 	// zaplogExample()
-	fzlogExample()
+	// fzlogExample()
+	svc := makeHttpServer()
+	svc.Addr = ":8080"
+	svc.ListenAndServe()
+
 }
 
 func logrusExample() {
@@ -91,7 +95,8 @@ func basicConfigurationExample() {
 		OutputPaths:      []string{"stdout", "./tmp/logs"},
 		ErrorOutputPaths: []string{"stderr"},
 		InitialFields: map[string]interface{}{
-			"app": "test",
+			"app":       "test",
+			"requestId": "",
 		},
 	}
 	logger, err := cfg.Build()
