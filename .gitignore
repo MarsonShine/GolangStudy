@@ -1,3 +1,5 @@
 src/tutorials/main
 
 *.exe
+
+tmp/

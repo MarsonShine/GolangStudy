@@ -398,6 +398,6 @@ func (enc *kvEncoder) tryAddRuneError(r rune, size int) bool {
 func addFields(kvEnc *kvEncoder, enc zapcore.ObjectEncoder, fields []zapcore.Field) {
 	for i := range fields {
 		fields[i].AddTo(enc)
-		kvEnc.buf.AppendByte(' ')
+		kvEnc.buf.AppendByte('#')
 	}
 }

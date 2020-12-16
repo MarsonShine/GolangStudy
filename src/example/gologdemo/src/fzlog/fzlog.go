@@ -64,20 +64,42 @@ func Debug(msg string, fields ...zap.Field) {
 }
 
 func (fzlog FzLog) Info(msg string, fields ...zap.Field) {
-	fzlog.initDefaultFields().log.Info(msg, fields...)
+	// fzlog.initDefaultFields().log.Info(msg, fields...)
+	fields = fzlog.appendFields(fields...)
+	fzlog.log.Info(msg, fields...)
+}
+
+func (fzlog FzLog) appendFields(fields ...zap.Field) []zap.Field {
+	ctx := fzlog.context
+	start, ok := ctx.Value(Duration).(time.Time)
+	var duration = ""
+	if ok {
+		duration = strconv.FormatInt(time.Since(start).Milliseconds(), 10)
+	}
+	fileds2 := []zapcore.Field{
+		zap.String(RequestID, ctx.Value(RequestID).(string)),
+		zap.String(UserFlag, ctx.Value(UserFlag).(string)),
+		zap.String(PlatformID, ctx.Value(PlatformID).(string)),
+		zap.String(Duration, duration),
+		zap.Int64(Size, ctx.Value(Size).(int64)),
+	}
+	fields = append(fields, fileds2...)
+	return fields
 }
 
 func (fzlog FzLog) With(fields ...zap.Field) FzLog {
-	fzlog.initDefaultFields().log.With(fields...)
+	fzlog.log.With(fields...)
 	return fzlog
 }
 
 func (fzlog FzLog) Error(msg string, fields ...zap.Field) {
-	fzlog.initDefaultFields().log.Error(msg, fields...)
+	fields = fzlog.appendFields(fields...)
+	fzlog.log.Error(msg, fields...)
 }
 
 func (fzlog FzLog) Debug(msg string, fields ...zap.Field) {
-	fzlog.initDefaultFields().log.Debug(msg, fields...)
+	fields = fzlog.appendFields(fields...)
+	fzlog.log.Debug(msg, fields...)
 }
 
 var config zap.Config
@@ -127,11 +149,11 @@ func initDefaultConfig() {
 		},
 		OutputPaths:      []string{"stdout", "./tmp/logs"},
 		ErrorOutputPaths: []string{"stderr"},
-		InitialFields: map[string]interface{}{
-			"requestId":  "",
-			"userflag":   "",
-			"platformId": "",
-		},
+		// InitialFields: map[string]interface{}{
+		// 	"requestId":  "",
+		// 	"userflag":   "",
+		// 	"platformId": "",
+		// },
 	}
 }
 

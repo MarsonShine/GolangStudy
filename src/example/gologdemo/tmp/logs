@@ -45,3 +45,93 @@ level=info#t=20201210_150018#caller=gologdemo/main.go:91#msg="logger constructio
 #level=info#t=2020-12-16 18:29:09#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"#platformId=requestId=userflag=#
 #level=info#t=2020-12-16 18:29:33#caller=fzlog/fzlog.go:93#msg="logger construction succeeded"#platformId=requestId=userflag=#
 #level=info#t=2020-12-16 18:29:33#caller=fzlog/fzlog.go:67#msg="这是一个测试demo"#platformId=requestId=userflag=#
+#level=info#t=2020-12-16 22:44:31#caller=fzlog/fzlog.go:112#msg="logger construction succeeded"#platformId=requestId=userflag=#
+#level=info#t=2020-12-16 22:45:05#caller=fzlog/fzlog.go:112#msg="logger construction succeeded"#platformId=requestId=userflag=#
+#level=info#t=2020-12-16 22:45:37#caller=fzlog/fzlog.go:86#msg="这是一个测试demo"#platformId=requestId=userflag=requestId=123123123123123 userFlag=15377899987 platformId=15377899987 duration=15153 size=0 #
+#level=info#t=2020-12-16 22:56:46#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:56:52#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:56:52#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=12 size=0 #
+#level=info#t=2020-12-16 22:58:22#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:22#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=14 size=0 #
+#level=info#t=2020-12-16 22:58:23#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:23#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=12 size=0 #
+#level=info#t=2020-12-16 22:58:23#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:24#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=9 size=0 #
+#level=info#t=2020-12-16 22:58:24#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:24#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=10 size=0 #
+#level=info#t=2020-12-16 22:58:25#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:25#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=9 size=0 #
+#level=info#t=2020-12-16 22:58:41#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:41#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=10 size=0 #
+#level=info#t=2020-12-16 22:58:41#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:41#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=10 size=0 #
+#level=info#t=2020-12-16 22:58:41#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:41#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=13 size=0 #
+#level=info#t=2020-12-16 22:58:42#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:42#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=9 size=0 #
+#level=info#t=2020-12-16 22:58:42#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:42#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=10 size=0 #
+#level=info#t=2020-12-16 22:58:44#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:44#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=9 size=0 #
+#level=info#t=2020-12-16 22:58:44#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:44#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=9 size=0 #
+#level=info#t=2020-12-16 22:58:45#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:45#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=10 size=0 #
+#level=info#t=2020-12-16 22:58:45#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:45#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=14 size=0 #
+#level=info#t=2020-12-16 22:58:46#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:46#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=9 size=0 #
+#level=info#t=2020-12-16 22:58:46#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:46#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=12 size=0 #
+#level=info#t=2020-12-16 22:58:46#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:46#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=11 size=0 #
+#level=info#t=2020-12-16 22:58:47#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 22:58:47#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=10 size=0 #
+#level=info#t=2020-12-16 23:02:09#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:02:32#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:02:57#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123 userFlag=15377899987 platformId=PC duration=18103 size=0 #
+#level=info#t=2020-12-16 23:03:30#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:36#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:36#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=11#size=0##
+#level=info#t=2020-12-16 23:03:49#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:49#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=13#size=0##
+#level=info#t=2020-12-16 23:03:50#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:50#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=11#size=0##
+#level=info#t=2020-12-16 23:03:50#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:50#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=10#size=0##
+#level=info#t=2020-12-16 23:03:51#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:51#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:03:51#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:51#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:03:52#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:52#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:03:52#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:52#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=10#size=0##
+#level=info#t=2020-12-16 23:03:53#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:53#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=11#size=0##
+#level=info#t=2020-12-16 23:03:53#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:53#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=11#size=0##
+#level=info#t=2020-12-16 23:03:54#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:54#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:03:54#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:54#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:03:55#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:55#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:03:55#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:55#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=10#size=0##
+#level=info#t=2020-12-16 23:03:57#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:57#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=10#size=0##
+#level=info#t=2020-12-16 23:03:58#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:58#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=11#size=0##
+#level=info#t=2020-12-16 23:03:59#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:59#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=12#size=0##
+#level=info#t=2020-12-16 23:03:59#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:03:59#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=9#size=0##
+#level=info#t=2020-12-16 23:04:00#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:04:00#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=10#size=0##
+#level=info#t=2020-12-16 23:04:00#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:04:00#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=11#size=0##
+#level=info#t=2020-12-16 23:04:01#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:04:01#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=10#size=0##
+#level=info#t=2020-12-16 23:04:01#caller=fzlog/fzlog.go:115#msg="logger construction succeeded"##
+#level=info#t=2020-12-16 23:04:01#caller=fzlog/fzlog.go:69#msg="这是一个测试demo"#requestId=123123123123123#userFlag=15377899987#platformId=PC#duration=8#size=0##
