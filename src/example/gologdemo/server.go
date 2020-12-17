@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+func initLogServer() {
+	fzlog.CreateLog()
+}
+
 func makeHttpServer() *http.Server {
 	mux := &http.ServeMux{}
 	mux.HandleFunc("/", handleIndex)
@@ -30,14 +34,16 @@ func makeHttpServer() *http.Server {
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	msg := fmt.Sprintf("You've called url %s", r.URL.String())
-	fzlog.NewContext(r.Context()).Info("这是一个测试demo")
+	fzlog.WithContext(&ctx).Info("这是一个测试demo")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK) // 200
 	w.Write([]byte(msg))
 }
 
 func logRequestHandler(next http.Handler) http.Handler {
+	initLogServer()
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ri := &HTTPReqInfo{
 			method:    r.Method,

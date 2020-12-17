@@ -1,11 +1,15 @@
 package fzlog
 
-import "context"
+import (
+	"context"
 
-func NewContext(ctx context.Context) FzLog {
-	if ctx == nil {
-		return CreateLog()
-	} else {
-		return withContext(ctx)
+	"go.uber.org/zap"
+)
+
+func WithContext(ctx *context.Context) FzLog {
+	logger := zap.L()
+	return FzLog{
+		logger,
+		ctx,
 	}
 }

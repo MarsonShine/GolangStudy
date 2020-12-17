@@ -3,3 +3,4 @@ src/tutorials/main
 *.exe
 
 tmp/
+src/example/gologdemo/tmp/logs

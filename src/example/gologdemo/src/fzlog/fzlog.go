@@ -26,11 +26,11 @@ const (
 
 type FzLog struct {
 	log     *zap.Logger
-	context context.Context
+	context *context.Context
 }
 
 func (fzlog FzLog) initDefaultFields() FzLog {
-	ctx := fzlog.context
+	ctx := *fzlog.context
 	d := ctx.Value(Duration)
 	r := ctx.Value(RequestID)
 	p := ctx.Value(PlatformID)
@@ -70,7 +70,7 @@ func (fzlog FzLog) Info(msg string, fields ...zap.Field) {
 }
 
 func (fzlog FzLog) appendFields(fields ...zap.Field) []zap.Field {
-	ctx := fzlog.context
+	ctx := *fzlog.context
 	start, ok := ctx.Value(Duration).(time.Time)
 	var duration = ""
 	if ok {
@@ -107,6 +107,7 @@ var config zap.Config
 func CreateLog() FzLog {
 	initDefaultConfig()
 	logger, err := config.Build()
+	zap.ReplaceGlobals(logger)
 	if err != nil {
 		logger.Error("logger construction falied")
 		panic(err)
@@ -117,15 +118,6 @@ func CreateLog() FzLog {
 		log:     logger,
 		context: nil,
 	}
-}
-
-func withContext(ctx context.Context) FzLog {
-	if ctx == nil {
-		panic("context is not null")
-	}
-	log := CreateLog()
-	log.context = ctx
-	return log
 }
 
 func initDefaultConfig() {
