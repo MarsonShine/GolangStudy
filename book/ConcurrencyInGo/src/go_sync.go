@@ -29,7 +29,10 @@ func main() {
 	// bulkWait()
 	// mutexExample()
 	// rwmutexExample()
-	condExample()
+	// condExample()
+	// coodExample2()
+	// onceDoExample()
+	poolExample()
 }
 
 func example2() {
@@ -204,4 +207,111 @@ func condExample() {
 func conditionTrue() bool {
 	time.Sleep(1)
 	return false
+}
+
+func coodExample2() {
+	type Button struct {
+		// 1
+		Clicked *sync.Cond
+	}
+
+	button := Button{Clicked: sync.NewCond(&sync.Mutex{})}
+
+	subscribe := func(c *sync.Cond, fn func()) { // 2
+		var tempwg sync.WaitGroup
+		tempwg.Add(1)
+		go func() {
+			tempwg.Done()
+			c.L.Lock()
+			defer c.L.Unlock()
+			c.Wait()
+			fn()
+		}()
+		tempwg.Wait()
+	}
+
+	var wg sync.WaitGroup // 3
+	wg.Add(3)
+	subscribe(button.Clicked, func() {
+		fmt.Println("Maximizing window")
+		wg.Done()
+	})
+	subscribe(button.Clicked, func() {
+		fmt.Println("Displaying annoying dialog box!")
+		wg.Done()
+	})
+	subscribe(button.Clicked, func() {
+		fmt.Println("Mouse clicked.")
+		wg.Done()
+	})
+	// 在内部，运行时维护一个等待信号发送的goroutines的FIFO列表
+	button.Clicked.Broadcast()
+	wg.Wait()
+}
+
+func onceDoExample() {
+	var count int
+	increment := func() { count++ }
+	decrement := func() { count-- }
+
+	var once sync.Once
+	once.Do(increment)
+	once.Do(decrement)
+	fmt.Println(count)
+	// 输出 1 而不是 0
+	// 这是因为 once.Do 记录的是调用的次数，而不是传入不同函数的调用次数。
+}
+
+func onceDoExample2() {
+	var onceA, onceB sync.Once
+	var initB func()
+	initA := func() { onceB.Do(initB) }
+	initB = func() { onceA.Do(initA) }
+	onceA.Do(initA)
+	// 会发生死锁
+}
+
+// 池模式是一种创建和提供固定可用数量对象的方式
+// sync.Pool 可以被多个例程安全使用
+func poolExample() {
+	myPool := &sync.Pool{
+		New: func() interface{} {
+			fmt.Println("Creating new instance")
+			return struct{}{}
+		},
+	}
+
+	myPool.Get()             // 1 Get 方法会在内部查询是否有可用对象，有直接返回并移除该对象，没有则调用初始化 New
+	instance := myPool.Get() // 1
+	myPool.Put(instance)     // 2 Put 方法则是将对象返回给对象池
+	myPool.Get()             // 3 这个时候再 Get 则不会执行 New 方法函数，因为池中存在一个可用的对象
+}
+
+func poolExmaple2() {
+	var numCalcsCreated int
+	calcPool := &sync.Pool{
+		New: func() interface{} {
+			numCalcsCreated++
+			mem := make([]byte, 1024)
+			return &mem
+		},
+	}
+	// 将池扩充到 4 kb
+	calcPool.Put(calcPool.New())
+	calcPool.Put(calcPool.New())
+	calcPool.Put(calcPool.New())
+	calcPool.Put(calcPool.New())
+	const numWorkers = 1024 * 1024
+	var wg sync.WaitGroup
+	wg.Add(numWorkers)
+
+	for i := numWorkers; i > 0; i-- {
+		go func() {
+			defer wg.Done()
+			mem := calcPool.Get().(*[]byte)
+			defer calcPool.Put(mem)
+		}()
+	}
+	wg.Wait()
+	fmt.Printf("%d calculators were created.", numCalcsCreated)
 }
