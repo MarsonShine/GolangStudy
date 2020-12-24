@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"sync"
 )
 
@@ -82,4 +84,48 @@ func channelExample3() {
 	fmt.Println("Unblocking goroutines...")
 	close(begin)
 	wg.Done()
+}
+
+// 缓冲通道如果是空的，但是此时有接收器正在接收，那么这个缓冲器就会被绕过，发送器直接将数据发送给接收器以避免阻塞。
+// channel 读取注意事项:
+// 读：channel 为 nil 时，会阻塞，在只写（发送）状态的 channel 时会编译失败
+// 写：channel 为 nil 时，会阻塞，在关闭时，会报错；在接收状态的 channel 会编译失败
+// 关闭：nil 时，会报错；在关闭时会报错；在只接收状态下，编译失败
+func channelExample4() {
+	var stdoutBuff bytes.Buffer
+	defer stdoutBuff.WriteTo(os.Stdout)
+
+	intStream := make(chan int, 4)
+	go func() {
+		defer close(intStream)
+		defer fmt.Fprintln(&stdoutBuff, "Producer Done.")
+		for i := 0; i < 5; i++ {
+			fmt.Fprintf(&stdoutBuff, "Sending: %d\n", i)
+			intStream <- i
+		}
+	}()
+	for integer := range intStream {
+		fmt.Fprintf(&stdoutBuff, "Received %v.\n", integer)
+	}
+}
+
+// 如何判断一个 channel 是否被关闭？
+// 如何才能知道是因为什么被阻塞？
+func channelExample5() {
+	//强烈建议在自己的程序中尽可能做到保持通道覆盖范围最小，以便这些事情保持明显。如果你将一个通道作为一个结构体的成员变量，并且有很多方法，它很快就会把你自己给绕进去
+	chanOwner := func() <-chan int {
+		resultStream := make(chan int, 5) // 1
+		go func() {                       // 2
+			defer close(resultStream) // 3
+			for i := 0; i <= 5; i++ {
+				resultStream <- i
+			}
+		}()
+		return resultStream // 4
+	}
+	resultStream := chanOwner()
+	for result := range resultStream { // 5
+		fmt.Printf("Received: %d\n", result)
+	}
+	fmt.Println("Done receiving!")
 }
