@@ -59,6 +59,8 @@ func fzlogExample() {
 	logger.Info("fzlog Info...")
 	logger.Debug("fzlog Debug...")
 	logger.Error("fzlog Error...")
+
+	logger.Infof("fzlog struct logging...%s, %s", "marsonshine", "summerzhu")
 }
 
 func basicZaplogExample() {

@@ -27,6 +27,7 @@ const (
 type FzLog struct {
 	log     *zap.Logger
 	context *context.Context
+	sugar   *zap.SugaredLogger
 }
 
 func (fzlog FzLog) initDefaultFields() FzLog {
@@ -70,6 +71,9 @@ func (fzlog FzLog) Info(msg string, fields ...zap.Field) {
 }
 
 func (fzlog FzLog) appendFields(fields ...zap.Field) []zap.Field {
+	if nil == fzlog.context {
+		return nil
+	}
 	ctx := *fzlog.context
 	start, ok := ctx.Value(Duration).(time.Time)
 	var duration = ""
@@ -102,6 +106,58 @@ func (fzlog FzLog) Debug(msg string, fields ...zap.Field) {
 	fzlog.log.Debug(msg, fields...)
 }
 
+func (fzlog FzLog) Infof(msg string, args ...interface{}) {
+	a := fzlog.defaultLogData()
+	if a != nil {
+		fzlog.sugar.With(a).Infof(msg, args...)
+	} else {
+		fzlog.sugar.Infof(msg, args...)
+	}
+}
+func (fzlog FzLog) Errorf(msg string, args ...interface{}) {
+	a := fzlog.defaultLogData()
+	if a != nil {
+		fzlog.sugar.With(a).Errorf(msg, args...)
+	} else {
+		fzlog.sugar.Errorf(msg, args...)
+	}
+}
+func (fzlog FzLog) Warnf(msg string, args ...interface{}) {
+	a := fzlog.defaultLogData()
+	if a != nil {
+		fzlog.sugar.With(a).Warnf(msg, args...)
+	} else {
+		fzlog.sugar.Warnf(msg, args...)
+	}
+}
+
+func (fzlog FzLog) defaultLogData() interface{} {
+	if nil == fzlog.context {
+		return nil
+	}
+	ctx := *fzlog.context
+	start, ok := ctx.Value(Duration).(time.Time)
+	var duration = ""
+	if ok {
+		duration = strconv.FormatInt(time.Since(start).Milliseconds(), 10)
+	}
+	args := struct {
+		RequestID  string
+		UserFlag   string
+		PlatformID string
+		Duration   string
+		Size       int64
+	}{
+		ctx.Value(RequestID).(string),
+		ctx.Value(UserFlag).(string),
+		ctx.Value(PlatformID).(string),
+		duration,
+		ctx.Value(Size).(int64),
+	}
+
+	return args
+}
+
 var config zap.Config
 
 func CreateLog() FzLog {
@@ -117,6 +173,7 @@ func CreateLog() FzLog {
 	return FzLog{
 		log:     logger,
 		context: nil,
+		sugar:   logger.Sugar(),
 	}
 }
 

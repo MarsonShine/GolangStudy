@@ -11,5 +11,6 @@ func WithContext(ctx *context.Context) FzLog {
 	return FzLog{
 		logger,
 		ctx,
+		logger.Sugar(),
 	}
 }
