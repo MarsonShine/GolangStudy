@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ecode;
+
+// ecode 自定义命名一定要以 ErrCode 结尾
+enum UserErrCode {
+    None = 0;
+    UserNotNull = 404;
+    UserNotLogin = 401;
+}

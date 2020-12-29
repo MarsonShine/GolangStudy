@@ -19,8 +19,8 @@ service Demo {
   rpc Ping(.google.protobuf.Empty) returns (.google.protobuf.Empty);
   rpc SayHello(HelloReq) returns (.google.protobuf.Empty);
   rpc SayHelloURL(HelloReq) returns (HelloResp) {
-    option (google.api.http) = {
-      get: "/kratos-demo/say_hello"
+    option (google.api.http) = {// 该配置指定SayHelloURL方法对应的url
+      get: "/kratos-demo/say_hello"// 指定url和请求方式为GET
     };
   };
 }

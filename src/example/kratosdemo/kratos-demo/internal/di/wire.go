@@ -5,9 +5,9 @@ package di
 
 import (
 	"kratos-demo/internal/dao"
-	"kratos-demo/internal/service"
 	"kratos-demo/internal/server/grpc"
 	"kratos-demo/internal/server/http"
+	"kratos-demo/internal/service"
 
 	"github.com/google/wire"
 )

@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/fatih/color v1.10.0 // indirect
-	github.com/go-kratos/kratos v0.5.0
+	github.com/go-kratos/kratos v0.6.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.3
 	github.com/google/subcommands v1.2.0 // indirect
