@@ -8,15 +8,18 @@ import (
 	"time"
 
 	"kratos-demo/internal/di"
+
+	"github.com/MSLibs/glogger"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
 )
 
 func main() {
 	flag.Parse()
-	log.Init(nil) // debug flag: log.dir={path}
-	defer log.Close()
-	log.Info("kratos-demo start")
+	// log.Init(nil) // debug flag: log.dir={path}
+	// defer log.Close()
+	// log.Info("kratos-demo start")
+	log := glogger.CreateLog()
 	paladin.Init()
 	_, closeFunc, err := di.InitApp()
 	if err != nil {
@@ -26,7 +29,7 @@ func main() {
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {
 		s := <-c
-		log.Info("get a signal %s", s.String())
+		log.Infof("get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
 			closeFunc()
@@ -38,4 +41,11 @@ func main() {
 			return
 		}
 	}
+}
+
+func logInit() {
+	log.Init(&log.Config{
+		Dir: "log.log",
+		V:   1,
+	})
 }
