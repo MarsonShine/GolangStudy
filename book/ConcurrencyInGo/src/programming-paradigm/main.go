@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-
+	orchannelExample()
 }
 
 func ppExample() {
