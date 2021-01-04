@@ -133,6 +133,22 @@ var take = func(done <-chan interface{}, valueStream <-chan interface{}, num int
 	return takeStream
 }
 
+// 创建一个重复调用的生成函数
+var repeatFn = func(done <-chan interface{}, fn func() interface{}) <-chan interface{} {
+	valueStream := make(chan interface{})
+	go func() {
+		defer close(valueStream)
+		for {
+			select {
+			case <-done:
+				return
+			case valueStream <- fn():
+			}
+		}
+	}()
+	return valueStream
+}
+
 func pipelineExample3() {
 	done := make(chan interface{})
 	defer close(done)
@@ -143,21 +159,6 @@ func pipelineExample3() {
 }
 
 func pipelineExample4() {
-	// 创建一个重复调用的生成函数
-	repeatFn := func(done <-chan interface{}, fn func() interface{}) <-chan interface{} {
-		valueStream := make(chan interface{})
-		go func() {
-			defer close(valueStream)
-			for {
-				select {
-				case <-done:
-					return
-				case valueStream <- fn():
-				}
-			}
-		}()
-		return valueStream
-	}
 	// 生成10个随机数
 	done := make(chan interface{})
 	defer close(done)

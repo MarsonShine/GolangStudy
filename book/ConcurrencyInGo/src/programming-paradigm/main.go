@@ -11,6 +11,7 @@ func main() {
 	pipelineExample()
 	pipelineExample2()
 	pipelineExample3()
+	fanoutinExample()
 }
 
 func ppExample() {
