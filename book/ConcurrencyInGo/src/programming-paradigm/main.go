@@ -7,7 +7,10 @@ import (
 )
 
 func main() {
-	orchannelExample()
+	// orchannelExample()
+	pipelineExample()
+	pipelineExample2()
+	pipelineExample3()
 }
 
 func ppExample() {
