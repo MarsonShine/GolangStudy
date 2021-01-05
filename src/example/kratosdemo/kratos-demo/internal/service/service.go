@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	pb "kratos-demo/api"
 	"kratos-demo/internal/dao"
+
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -42,6 +44,7 @@ func (s *Service) SayHello(ctx context.Context, req *pb.HelloReq) (reply *empty.
 func (s *Service) SayHelloURL(ctx context.Context, req *pb.HelloReq) (reply *pb.HelloResp, err error) {
 	reply = &pb.HelloResp{
 		Content: "hello " + req.Name,
+		Id:      rand.Int63(),
 	}
 	fmt.Printf("hello url %s", req.Name)
 	return

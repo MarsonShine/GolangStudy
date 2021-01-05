@@ -42,3 +42,7 @@ func getInt64(c *bm.Context) {
 	// 	Data: ,
 	// })
 }
+
+func getInt64FromProtobuf(c *bm.Context) {
+
+}
