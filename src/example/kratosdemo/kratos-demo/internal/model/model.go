@@ -6,7 +6,7 @@ type Kratos struct {
 }
 
 type Article struct {
-	ID int64
+	ID      int64 `json:",string"`
 	Content string
-	Author string
+	Author  string
 }

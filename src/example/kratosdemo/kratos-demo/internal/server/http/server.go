@@ -10,9 +10,7 @@ import (
 
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
-	"github.com/go-kratos/kratos/pkg/naming/discovery"
 	bm "github.com/go-kratos/kratos/pkg/net/http/blademaster"
-	"github.com/go-kratos/kratos/pkg/net/rpc/warden/resolver"
 )
 
 var svc pb.DemoServer
@@ -40,7 +38,7 @@ func New(s pb.DemoServer) (engine *bm.Engine, err error) {
 	middleware.UseRateLimiter(engine)
 	err = engine.Start()
 	// 服务发现
-	resolver.Register(discovery.Builder())
+	// resolver.Register(discovery.Builder())
 	return
 }
 
@@ -50,6 +48,7 @@ func initRouter(e *bm.Engine) {
 	{
 		g.GET("/start", howToStart)
 		g.GET("/user/:id", getUserHandler)
+		g.GET("/bigint", getInt64)
 	}
 }
 

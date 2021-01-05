@@ -27,6 +27,7 @@ service Demo {
 
 message HelloReq {
   string name = 1 [(gogoproto.moretags) = 'form:"name" validate:"required"'];
+  int64 id = 2;
 }
 
 message HelloResp {
