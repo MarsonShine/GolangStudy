@@ -49,6 +49,7 @@ func initRouter(e *bm.Engine) {
 		g.GET("/start", howToStart)
 		g.GET("/user/:id", getUserHandler)
 		g.GET("/bigint", getInt64)
+		g.GET("/bigint2", getInt64FromProtobuf)
 	}
 }
 

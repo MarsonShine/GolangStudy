@@ -13,7 +13,7 @@ require (
 	github.com/google/wire v0.4.0
 	github.com/hashicorp/consul/api v1.8.1
 	github.com/philchia/agollo/v4 v4.1.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/urfave/cli/v2 v2.3.0 // indirect
 	golang.org/x/mod v0.4.0 // indirect

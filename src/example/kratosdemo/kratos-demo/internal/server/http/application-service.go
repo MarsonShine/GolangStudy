@@ -2,10 +2,12 @@ package http
 
 import (
 	"fmt"
-	"kratos-demo/internal/model"
-	"math/rand"
+	"kratos-demo/api"
+	jb "kratos-demo/internal/jsonpb"
+	"net/http"
 
 	bm "github.com/go-kratos/kratos/pkg/net/http/blademaster"
+	"github.com/go-kratos/kratos/pkg/net/http/blademaster/binding"
 )
 
 // 获取用户信息
@@ -28,21 +30,24 @@ func getUserHandler(c *bm.Context) {
 
 // 返回int64类型
 func getInt64(c *bm.Context) {
-	k := &model.Article{
-		ID:      rand.Int63(),
-		Content: "这是Content",
-		Author:  "marsonshine",
+	p := new(api.HelloReq)
+	if err := c.BindWith(p, binding.Default(c.Request.Method, c.Request.Header.Get("Content-Type"))); err != nil {
+		return
 	}
-	c.JSON(k, nil)
-
-	// c.Render(http.StatusOK, render.PB{
-	// 	Code: 0,
-	// 	Message: "0",
-	// 	TTL: 1,
-	// 	Data: ,
-	// })
+	data, _ := api.DemoSvc.SayHelloURL(c.Context, p)
+	c.JSON(data, nil)
 }
 
 func getInt64FromProtobuf(c *bm.Context) {
-
+	p := new(api.HelloReq)
+	if err := c.BindWith(p, binding.Default(c.Request.Method, c.Request.Header.Get("Content-Type"))); err != nil {
+		return
+	}
+	data, _ := api.DemoSvc.SayHelloURL(c.Context, p)
+	c.Render(http.StatusOK, jb.PBJSON{
+		Code:    0,
+		Message: "0",
+		TTL:     1,
+		Data:    data,
+	})
 }
