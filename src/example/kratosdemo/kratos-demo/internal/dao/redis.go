@@ -11,7 +11,7 @@ import (
 func NewRedis() (r *redis.Redis, cf func(), err error) {
 	var (
 		cfg redis.Config
-		ct paladin.Map
+		ct  paladin.Map
 	)
 	if err = paladin.Get("redis.toml").Unmarshal(&ct); err != nil {
 		return
@@ -20,7 +20,7 @@ func NewRedis() (r *redis.Redis, cf func(), err error) {
 		return
 	}
 	r = redis.NewRedis(&cfg)
-	cf = func(){r.Close()}
+	cf = func() { r.Close() }
 	return
 }
 
@@ -29,4 +29,17 @@ func (d *dao) PingRedis(ctx context.Context) (err error) {
 		log.Error("conn.Set(PING) error(%v)", err)
 	}
 	return
+}
+
+func (d *dao) GetDemo(c context.Context, key string) (string, error) {
+	conn := d.redis.Conn(c)
+	defer conn.Close()
+	// 如果没有就去数据库取
+	if s, _ := redis.String(conn.Do("GET", key)); s == "" {
+		// 取数据库
+		if _, err := d.redis.Do(c, "SET", key, "marsonshine"); err != nil {
+			log.Error("conn.Set(%s) error(%v)", key, err)
+		}
+	}
+	return redis.String(conn.Do("GET", key))
 }

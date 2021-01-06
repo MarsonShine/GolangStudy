@@ -8,6 +8,7 @@
 		Ping(ctx context.Context) (err error)
 		// bts: -nullcache=&model.Article{ID:-1} -check_null_code=$!=nil&&$.ID==-1
 		Article(c context.Context, id int64) (*model.Article, error)
+		GetDemo(c context.Context, key string) (string, error)
 	}
 */
 

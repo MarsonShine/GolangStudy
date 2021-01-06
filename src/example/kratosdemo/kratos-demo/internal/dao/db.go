@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"kratos-demo/internal/model"
+
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/database/sql"
 )
@@ -11,7 +12,7 @@ import (
 func NewDB() (db *sql.DB, cf func(), err error) {
 	var (
 		cfg sql.Config
-		ct paladin.TOML
+		ct  paladin.TOML
 	)
 	if err = paladin.Get("db.toml").Unmarshal(&ct); err != nil {
 		return
@@ -20,7 +21,7 @@ func NewDB() (db *sql.DB, cf func(), err error) {
 		return
 	}
 	db = sql.NewMySQL(&cfg)
-	cf = func() {db.Close()}
+	cf = func() { db.Close() }
 	return
 }
 

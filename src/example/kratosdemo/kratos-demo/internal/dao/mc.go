@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"kratos-demo/internal/model"
+
 	"github.com/go-kratos/kratos/pkg/cache/memcache"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
@@ -23,7 +24,7 @@ type _mc interface {
 func NewMC() (mc *memcache.Memcache, cf func(), err error) {
 	var (
 		cfg memcache.Config
-		ct paladin.TOML
+		ct  paladin.TOML
 	)
 	if err = paladin.Get("memcache.toml").Unmarshal(&ct); err != nil {
 		return
@@ -31,8 +32,8 @@ func NewMC() (mc *memcache.Memcache, cf func(), err error) {
 	if err = ct.Get("Client").UnmarshalTOML(&cfg); err != nil {
 		return
 	}
-	mc =  memcache.New(&cfg)
-	cf = func() {mc.Close()}
+	mc = memcache.New(&cfg)
+	cf = func() { mc.Close() }
 	return
 }
 

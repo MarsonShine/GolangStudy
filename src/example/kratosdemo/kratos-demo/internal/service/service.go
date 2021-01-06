@@ -47,6 +47,8 @@ func (s *Service) SayHelloURL(ctx context.Context, req *pb.HelloReq) (reply *pb.
 		Id:      rand.Int63(),
 	}
 	fmt.Printf("hello url %s", req.Name)
+	ss, _ := s.dao.GetDemo(ctx, "demo")
+	fmt.Printf("这里获取 redis 的数据 = %s", ss)
 	return
 }
 
