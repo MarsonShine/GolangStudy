@@ -105,6 +105,7 @@ var fanIn = func(done <-chan interface{}, channels ...<-chan interface{}) <-chan
 	for _, c := range channels {
 		go multiplex(c)
 	}
+	// 等待所有数据汇总
 	go func() {
 		wg.Wait()
 		close(multiplexedStream)

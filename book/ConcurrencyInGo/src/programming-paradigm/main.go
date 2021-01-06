@@ -8,10 +8,11 @@ import (
 
 func main() {
 	// orchannelExample()
-	pipelineExample()
-	pipelineExample2()
-	pipelineExample3()
-	fanoutinExample()
+	// pipelineExample()
+	// pipelineExample2()
+	// pipelineExample3()
+	// fanoutinExample()
+	teeExample()
 }
 
 func ppExample() {
