@@ -5,6 +5,10 @@ github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798/go.mod h1:1jcaCB/uf
 github.com/HdrHistogram/hdrhistogram-go v1.0.1/go.mod h1:BWJ+nMSHY3L41Zj7CA3uXnloDp7xxV0YvstAE7nKTaM=
 github.com/MSLibs/glogger v0.0.0-20201230062109-4e35ec0458cc h1:0myPFR66rUvk612lU21AO1gJl7sKVB92fJee/l4cYZU=
 github.com/MSLibs/glogger v0.0.0-20201230062109-4e35ec0458cc/go.mod h1:Fsy0WhGgFBnJRhmN1M4HKGCjPcMXf6ePiIBKauRpltE=
+github.com/MSLibs/glogger v0.0.2-0.20210107065019-a70a59aff5b2 h1:uNg2eDQ+0Bh4rv/jy3TEcnK74E6qVVtF5WuLUZOAa/g=
+github.com/MSLibs/glogger v0.0.2-0.20210107065019-a70a59aff5b2/go.mod h1:Fsy0WhGgFBnJRhmN1M4HKGCjPcMXf6ePiIBKauRpltE=
+github.com/MSLibs/glogger v0.1.1 h1:bFsh0v5bh8WpkEy9nwnZ0sQTDrPwa5Jt++WYZkCaAE8=
+github.com/MSLibs/glogger v0.1.1/go.mod h1:Fsy0WhGgFBnJRhmN1M4HKGCjPcMXf6ePiIBKauRpltE=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/sarama v1.23.1/go.mod h1:XLH1GYJnLVE0XCr6KdJGVJRTwY30moWNJ4sERjXX6fs=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=

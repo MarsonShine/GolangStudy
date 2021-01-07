@@ -37,8 +37,6 @@ func New(s pb.DemoServer) (engine *bm.Engine, err error) {
 	// 限流
 	middleware.UseRateLimiter(engine)
 	err = engine.Start()
-	// 服务发现
-	// resolver.Register(discovery.Builder())
 	return
 }
 

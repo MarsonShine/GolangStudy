@@ -62,7 +62,7 @@ type Config struct {
 	Host   string
 }
 
-func (builder Builder) Build(id string) naming.Resolver {
+func (builder Builder) Build(id string, options ...naming.BuildOpt) naming.Resolver {
 	builder.locker.RLock()
 	if r, ok := builder.r[id]; ok {
 		builder.locker.RUnlock()
@@ -84,6 +84,10 @@ func (builder Builder) Build(id string) naming.Resolver {
 		log.Fatalf("watch error %s", err.Error())
 	}
 	return r
+}
+
+func (builder Builder) Scheme() string {
+	return "consul"
 }
 
 func NewConsulDiscovery(c Config) (builder Builder, err error) {

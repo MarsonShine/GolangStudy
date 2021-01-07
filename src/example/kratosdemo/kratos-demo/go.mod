@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
-	github.com/MSLibs/glogger v0.0.0-20201230062109-4e35ec0458cc
+	github.com/MSLibs/glogger v0.1.1
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/go-kratos/kratos v0.6.0
 	github.com/gogo/protobuf v1.3.1

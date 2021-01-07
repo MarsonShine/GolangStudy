@@ -12,7 +12,9 @@ func main() {
 	// pipelineExample2()
 	// pipelineExample3()
 	// fanoutinExample()
-	teeExample()
+	// teeExample()
+	contextExample()
+	contextExample2()
 }
 
 func ppExample() {

@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"kratos-demo/internal/di"
+	mynaming "kratos-demo/internal/naming"
 
 	"github.com/MSLibs/glogger"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
+	"github.com/go-kratos/kratos/pkg/net/rpc/warden/resolver"
 )
 
 func main() {
@@ -25,6 +27,28 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// 服务发现
+	bulder, err := mynaming.NewConsulDiscovery(mynaming.Config{Zone: "zone01", Env: "dev", Region: "region01"})
+	if err != nil {
+		panic(err)
+	}
+	resolver.Register(bulder)
+
+	// // 服务注册
+	// ip := "127.0.0.1" // NOTE: 必须拿到您实例节点的真实IP，
+	// port := "9000"    // NOTE: 必须拿到您实例grpc监听的真实端口，warden默认监听9000
+	// hn, _ := os.Hostname()
+	// ins := &naming.Instance{
+	// 	Zone:     "zone01",
+	// 	Env:      env.DeployEnv,
+	// 	AppID:    AppID,
+	// 	Hostname: hn,
+	// 	Addrs: []string{
+	// 		"grpc://" + ip + ":" + port,
+	// 	},
+	// }
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {
