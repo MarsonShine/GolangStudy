@@ -42,13 +42,14 @@ func contextExample() {
 // 通过 context.Context 来实现取消操作
 func contextExample2() {
 	var wg sync.WaitGroup
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background()) // 1 建立一个新的 context，传递给下级函数
 	defer cancel()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if err := printGreetingWithContext(ctx); err != nil {
 			fmt.Printf("cannot print greeting: %v\n", err)
+			cancel() // 2 发生错误，取消操作
 		}
 	}()
 
@@ -60,6 +61,47 @@ func contextExample2() {
 		}
 	}()
 	wg.Wait()
+}
+
+// localeWithContext 函数已知需要1分钟的时间，我们可以使用deadline
+func contextExample3() {
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := printGreetingWithContext(ctx); err != nil {
+			fmt.Printf("cannot print greeting: %v\n", err)
+			cancel()
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := printFarewellWithContext(ctx); err != nil {
+			fmt.Printf("cannot print farewell: %v\n", err)
+		}
+	}()
+	wg.Wait()
+}
+
+// 可以给上下文请求添加数据
+func contextExample4() {
+	ProcessRequest("username", "marsonshine")
+}
+
+func ProcessRequest(key string, value string) {
+	ctx := context.WithValue(context.Background(), key, value)
+	ctx = context.WithValue(ctx, "other", "summerzhu")
+	HandleResponse(ctx)
+}
+
+func HandleResponse(ctx context.Context) {
+	fmt.Printf("handling response for %v (%v)",
+		ctx.Value("username"),
+		ctx.Value("other"))
 }
 
 func printGreetingWithContext(ctx context.Context) error {
@@ -80,7 +122,7 @@ func printFarewellWithContext(ctx context.Context) error {
 }
 
 func genGreetingWithContext(ctx context.Context) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second) //3
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second) //3 context.WithTimeout 包装新的 context，并1秒后自动返回从而取消操作被调用
 	defer cancel()
 	switch locale, err := localeWithContext(ctx); {
 	case err != nil:
@@ -103,7 +145,22 @@ func genFarewellWithContext(ctx context.Context) (string, error) {
 func localeWithContext(ctx context.Context) (string, error) {
 	select {
 	case <-ctx.Done():
-		return "", ctx.Err() //4
+		return "", ctx.Err() // 4: 返回context错误的原因，会一直冒泡到函数的调用处，这会导致 2 注释的取消操作被调用
+	case <-time.After(1 * time.Minute):
+	}
+	return "EN/US", nil
+}
+
+func localeWithContextDeadline(ctx context.Context) (string, error) {
+	if deadline, ok := ctx.Deadline(); ok { // 1,检查context提供的deadline，如果提供了值并且程序时间超过这个时间则就会返回预设的 context.DeadlineExceeded 错误
+		if deadline.Sub(time.Now().Add(1*time.Minute)) <= 0 {
+			return "", context.DeadlineExceeded
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
 	case <-time.After(1 * time.Minute):
 	}
 	return "EN/US", nil

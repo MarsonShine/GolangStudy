@@ -15,6 +15,7 @@ func main() {
 	// teeExample()
 	contextExample()
 	contextExample2()
+	contextExample4()
 }
 
 func ppExample() {
