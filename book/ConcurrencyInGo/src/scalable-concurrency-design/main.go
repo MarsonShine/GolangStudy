@@ -1,5 +1,8 @@
 package main
 
 func main() {
-	errorPassingExample()
+	// errorPassingExample()
+	// heartbeatExample()
+	// heartbeatExample2()
+	heartbeatExample3()
 }

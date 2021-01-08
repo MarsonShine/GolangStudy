@@ -61,11 +61,11 @@ func runJob(id string) error {
 	const jobBinPath = "/bad/job/binary"
 	isExecutable, err := isGloballyExec(jobBinPath)
 	if err != nil {
-		return err //1
+		return err //1, 没有用自定义错误信息封装起来，这会产生问题
 	} else if isExecutable == false {
 		return wrapError(nil, "job binary is not executable")
 	}
-	return exec.Command(jobBinPath, "--id="+id).Run() // 1, 没有用自定义错误信息封装起来，这会产生问题
+	return exec.Command(jobBinPath, "--id="+id).Run()
 }
 
 func runJob2(id string) error {
