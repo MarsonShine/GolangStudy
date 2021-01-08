@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	pb "kratos-demo/api"
-	"kratos-demo/internal/middleware"
+	// "kratos-demo/internal/middleware"
 	"kratos-demo/internal/middleware/cors"
 	"kratos-demo/internal/model"
 
@@ -31,13 +31,13 @@ func New(s pb.DemoServer) (engine *bm.Engine, err error) {
 	engine = bm.DefaultServer(&cfg)
 	pb.RegisterDemoBMServer(engine, s)
 	// 日志中间件
-	middleware.UseGLogger(engine)
-	engine.Use(middleware.NewRecordRequestElapsedTime())
+	// middleware.UseGLogger(engine)
+	// engine.Use(middleware.NewRecordRequestElapsedTime())
 	// 跨域
 	cors.NewCors().UseCros(engine)
 	initRouter(engine)
 	// 限流
-	middleware.UseRateLimiter(engine)
+	// middleware.UseRateLimiter(engine)
 	err = engine.Start()
 	return
 }

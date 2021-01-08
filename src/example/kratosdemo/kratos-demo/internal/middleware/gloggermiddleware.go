@@ -20,43 +20,56 @@ var _ GLoggerMiddleware = GLoggerMiddleware{}
 
 func (g GLoggerMiddleware) ServeHTTP(ctx *bm.Context) {
 	ri := &HttpRequestPayload{
-		method:    ctx.Request.Method,
-		url:       ctx.Request.URL.String(),
-		referer:   ctx.Request.Header.Get("Referer"),
-		userAgent: ctx.Request.Header.Get("User-Agent"),
+		method:     ctx.Request.Method,
+		url:        ctx.Request.URL.String(),
+		referer:    ctx.Request.Header.Get("Referer"),
+		userAgent:  ctx.Request.Header.Get("User-Agent"),
+		requestId:  ctx.Request.Header.Get(glogger.RequestID),
+		userflag:   ctx.Request.Header.Get(glogger.UserFlag),
+		platformId: ctx.Request.Header.Get(glogger.PlatformID),
 	}
 	ri.ip = requestGetRemoteAddress(ctx.Request)
 	// this runs handler h and captures information about
 	// HTTP request
 	// m := httpsnoop.CaptureMetrics()
 	ri.size = ctx.Request.ContentLength
-	context := initLogContext(ctx.Request, ri)
-	ctx.Request.WithContext(context)
+	initLogContext(ctx, ri)
 }
 
 type HttpRequestPayload struct {
-	method    string
-	url       string
-	ip        string
-	referer   string
-	userAgent string
-	size      int64
-	duration  int64
+	method     string
+	url        string
+	ip         string
+	referer    string
+	userAgent  string
+	requestId  string
+	platformId string
+	userflag   string
+	size       int64
+	duration   int64
 }
 
 var _ HttpRequestPayload = HttpRequestPayload{}
 
-func initLogContext(r *http.Request, info *HttpRequestPayload) context.Context {
+func initLogContext(ctx *bm.Context, info *HttpRequestPayload) {
 	start := time.Now()
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, glogger.RequestID, r.Header.Get(glogger.RequestID))
-	ctx = context.WithValue(ctx, glogger.UserFlag, r.Header.Get(glogger.UserFlag))
-	ctx = context.WithValue(ctx, glogger.PlatformID, r.Header.Get(glogger.PlatformID))
-	ctx = context.WithValue(ctx, "referer", r.Header.Get(glogger.PlatformID))
-	ctx = context.WithValue(ctx, "userAgent", r.Header.Get(glogger.PlatformID))
-	ctx = context.WithValue(ctx, "size", info.size)
-	ctx = context.WithValue(ctx, "duration", start)
-	return ctx
+	// requestId := ctx.Request.Header.Get(glogger.RequestID)
+	// userflag := ctx.Request.Header.Get(glogger.UserFlag)
+	// platformId := ctx.Request.Header.Get(glogger.PlatformID)
+	ctx.Context = context.WithValue(ctx.Context, glogger.RequestID, info.requestId)
+	ctx.Context = context.WithValue(ctx.Context, glogger.UserFlag, info.userflag)
+	ctx.Context = context.WithValue(ctx.Context, glogger.PlatformID, info.platformId)
+	ctx.Context = context.WithValue(ctx.Context, "referer", info.referer)
+	ctx.Context = context.WithValue(ctx.Context, "userAgent", info.userAgent)
+	ctx.Context = context.WithValue(ctx.Context, "size", info.size)
+	ctx.Context = context.WithValue(ctx.Context, "duration", start)
+	// ctx.Set(glogger.RequestID, info.requestId)
+	// ctx.Set(glogger.UserFlag, info.userflag)
+	// ctx.Set(glogger.PlatformID, info.platformId)
+	// ctx.Set("referer", info.referer)
+	// ctx.Set("userAgent", info.userAgent)
+	// ctx.Set("size", info.size)
+	// ctx.Set("duration", start)
 }
 
 func requestGetRemoteAddress(r *http.Request) string {

@@ -35,11 +35,11 @@ func getUserHandler(c *bm.Context) {
 // 返回int64类型
 func getInt64(c *bm.Context) {
 	p := new(api.HelloReq)
-	if err := c.BindWith(p, binding.Default(c.Request.Method, c.Request.Header.Get("Content-Type"))); err != nil {
-		return
-	}
+	// if err := c.BindWith(p, binding.Default(c.Request.Method, c.Request.Header.Get("Content-Type"))); err != nil {
+	// 	return
+	// }
 	data, _ := api.DemoSvc.SayHelloURL(c.Context, p)
-	glog.SetContext(&c.Context).Infof("logging data=%v", data)
+	// glog.SetContext(&c.Context).Infof("logging data=%v", data)
 	c.JSON(data, nil)
 }
 
