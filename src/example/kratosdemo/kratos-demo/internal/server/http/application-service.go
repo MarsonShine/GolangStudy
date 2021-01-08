@@ -6,9 +6,13 @@ import (
 	jb "kratos-demo/internal/jsonpb"
 	"net/http"
 
+	"github.com/MSLibs/glogger"
+
 	bm "github.com/go-kratos/kratos/pkg/net/http/blademaster"
 	"github.com/go-kratos/kratos/pkg/net/http/blademaster/binding"
 )
+
+var glog = glogger.CreateLog(glogger.GLoggerConfig{})
 
 // 获取用户信息
 func getUserHandler(c *bm.Context) {
@@ -35,6 +39,7 @@ func getInt64(c *bm.Context) {
 		return
 	}
 	data, _ := api.DemoSvc.SayHelloURL(c.Context, p)
+	glog.SetContext(&c.Context).Infof("logging data=%v", data)
 	c.JSON(data, nil)
 }
 

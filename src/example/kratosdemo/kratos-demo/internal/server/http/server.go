@@ -30,6 +30,8 @@ func New(s pb.DemoServer) (engine *bm.Engine, err error) {
 	svc = s
 	engine = bm.DefaultServer(&cfg)
 	pb.RegisterDemoBMServer(engine, s)
+	// 日志中间件
+	middleware.UseGLogger(engine)
 	engine.Use(middleware.NewRecordRequestElapsedTime())
 	// 跨域
 	cors.NewCors().UseCros(engine)

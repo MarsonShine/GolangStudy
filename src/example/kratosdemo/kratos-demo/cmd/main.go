@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"kratos-demo/internal/di"
-	mynaming "kratos-demo/internal/naming"
 
 	"github.com/MSLibs/glogger"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
-	"github.com/go-kratos/kratos/pkg/net/rpc/warden/resolver"
 )
 
 func main() {
@@ -21,19 +19,19 @@ func main() {
 	// log.Init(nil) // debug flag: log.dir={path}
 	// defer log.Close()
 	// log.Info("kratos-demo start")
-	log := glogger.CreateLog()
+	log := glogger.CreateLog(glogger.GLoggerConfig{})
 	paladin.Init()
 	_, closeFunc, err := di.InitApp()
 	if err != nil {
 		panic(err)
 	}
 
-	// 服务发现
-	bulder, err := mynaming.NewConsulDiscovery(mynaming.Config{Zone: "zone01", Env: "dev", Region: "region01"})
-	if err != nil {
-		panic(err)
-	}
-	resolver.Register(bulder)
+	// // 服务发现
+	// bulder, err := mynaming.NewConsulDiscovery(mynaming.Config{Zone: "zone01", Env: "dev", Region: "region01"})
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// resolver.Register(bulder)
 
 	// // 服务注册
 	// ip := "127.0.0.1" // NOTE: 必须拿到您实例节点的真实IP，
