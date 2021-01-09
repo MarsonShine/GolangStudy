@@ -6,3 +6,7 @@ golang自学仓库
 《Go 语言底层设计》：https://draveness.me/golang/
 
 《Go 编程模式》：https://coolshell.cn/articles/21128.html（陈皓）
+
+《Go 编程风格指南》：https://github.com/uber-go/guide/blob/master/style.md
+
+《Go 编程风格指南》- 中译版：https://github.com/xxjwxc/uber_go_guide_cn
