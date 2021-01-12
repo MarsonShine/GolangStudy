@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -62,6 +63,22 @@ var bridge = func(
 }
 
 var or func(channels ...<-chan interface{}) <-chan interface{}
+
+// 这个函数会从其传入的valueStream中取出第一个元素然后退出
+var take = func(done <-chan interface{}, valueStream <-chan interface{}, num int) <-chan interface{} {
+	takeStream := make(chan interface{})
+	go func() {
+		defer close(takeStream)
+		for i := 0; i < num; i++ {
+			select {
+			case <-done:
+				return
+			case takeStream <- <-valueStream:
+			}
+		}
+	}()
+	return takeStream
+}
 
 func errorRecoverySample() {
 	or = func(channels ...<-chan interface{}) <-chan interface{} { // <1>
@@ -136,46 +153,83 @@ func errorRecoverySample() {
 	}
 
 	doWorkFn := func(done <-chan interface{}, intList ...int) (startGoroutineFn, <-chan interface{}) { // 1
-		intChanStream := make(chan (<-chan interface{})) // 2
+		intChanStream := make(chan (<-chan interface{})) // 2 创建一个通道的通道
 		intStream := bridge(done, intChanStream)
 
-		doWork := func(done <-chan interface{}, pulseInternal time.Duration) <-chan interface{} { // 3
-			intStream := make(chan interface{}) // 4
+		doWork := func(done <-chan interface{}, pulseInternal time.Duration) <-chan interface{} { // 3 建立闭包控制器的开启和关闭
+			intStream := make(chan interface{}) // 4 数据
 			heartbeat := make(chan interface{})
 
 			go func() {
 				defer close(intStream)
 				select {
-				case intChanStream <- intStream: // 5
+				case intChanStream <- intStream: // 5 向通道传入数据
 				case <-done:
 					return
 				}
 
 				pulse := time.Tick(pulseInternal)
+
+				for {
+				valueLoop:
+					for _, intVal := range intList {
+						if intVal < 0 {
+							log.Printf("negative value: %v\n", intVal) // 6 返回负数并从goroutine返回以模拟不正常的工作状态
+							return
+						}
+
+						for {
+							select {
+							case <-pulse:
+								select {
+								case heartbeat <- struct{}{}:
+								default:
+								}
+							case intStream <- intVal:
+								continue valueLoop
+							case <-done:
+								return
+							}
+						}
+					}
+				}
 			}()
+			return heartbeat
 		}
+		return doWork, intStream
 	}
 
 	log.SetOutput(os.Stdout)
 	log.SetFlags(log.Ltime | log.LUTC)
-	doWork := func(done <-chan interface{}, _ time.Duration) <-chan interface{} {
-		log.Println("ward: Hello, I'm irresponsible!")
-		go func() {
-			<-done // 1 持久等待 done 触发
-			log.Println("ward: I am halting.")
-		}()
-		return nil
-	}
 
-	doWorkWithSteward := newSteward(4*time.Second, doWork) // 2 开启监控程序，4秒后超时
 	done := make(chan interface{})
-	time.AfterFunc(9*time.Second, func() { // 3 9秒超时然后关闭 done
-		log.Println("main: halting steward and ward.")
-		close(done)
-	})
+	defer close(done)
 
-	for range doWorkWithSteward(done, 4*time.Second) { // 4
-
+	doWork, intStream := doWorkFn(done, 1, 2, -1, 3, 4, 5)      // 1
+	doWorkWithSteward := newSteward(1*time.Microsecond, doWork) // 2
+	doWorkWithSteward(done, 1*time.Hour)                        // 3
+	for intVal := range take(done, intStream, 6) {              // 4
+		fmt.Printf("Received: %v\n", intVal)
 	}
+
+	// doWork := func(done <-chan interface{}, _ time.Duration) <-chan interface{} {
+	// 	log.Println("ward: Hello, I'm irresponsible!")
+	// 	go func() {
+	// 		<-done // 1 持久等待 done 触发
+	// 		log.Println("ward: I am halting.")
+	// 	}()
+	// 	return nil
+	// }
+
+	// doWorkWithSteward := newSteward(4*time.Second, doWork) // 2 开启监控程序，4秒后超时
+	// done := make(chan interface{})
+	// time.AfterFunc(9*time.Second, func() { // 3 9秒超时然后关闭 done
+	// 	log.Println("main: halting steward and ward.")
+	// 	close(done)
+	// })
+
+	// for range doWorkWithSteward(done, 4*time.Second) { // 4
+
+	// }
 	log.Println("Done")
 }
