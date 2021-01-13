@@ -6,6 +6,7 @@ import (
 	"github.com/go-kratos/kratos/pkg/cache/redis"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
+	goredis "github.com/go-redis/redis"
 )
 
 func NewRedis() (r *redis.Redis, cf func(), err error) {
@@ -20,6 +21,26 @@ func NewRedis() (r *redis.Redis, cf func(), err error) {
 		return
 	}
 	r = redis.NewRedis(&cfg)
+	cf = func() { r.Close() }
+	return
+}
+
+func NewGoRedis() (r *goredis.Client, cf func(), err error) {
+	var (
+		cfg redis.Config
+		ct  paladin.Map
+	)
+	if err = paladin.Get("redis.toml").Unmarshal(&ct); err != nil {
+		return
+	}
+	if err = ct.Get("Client").UnmarshalTOML(&cfg); err != nil {
+		return
+	}
+	r = GetGoRedisInstance(goredis.Options{
+		Addr:     cfg.Addr,
+		Password: "",
+		DB:       0,
+	})
 	cf = func() { r.Close() }
 	return
 }

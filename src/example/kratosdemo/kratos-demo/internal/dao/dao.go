@@ -12,11 +12,12 @@ import (
 	"github.com/go-kratos/kratos/pkg/database/sql"
 	"github.com/go-kratos/kratos/pkg/sync/pipeline/fanout"
 	xtime "github.com/go-kratos/kratos/pkg/time"
+	goredis "github.com/go-redis/redis"
 
 	"github.com/google/wire"
 )
 
-var Provider = wire.NewSet(New, NewDB, NewRedis, NewMC)
+var Provider = wire.NewSet(New, NewDB, NewRedis, NewMC, NewGoRedis)
 
 //go:generate kratos tool genbts
 // Dao dao interface
@@ -35,14 +36,15 @@ type dao struct {
 	mc         *memcache.Memcache
 	cache      *fanout.Fanout
 	demoExpire int32
+	goredis    *goredis.Client
 }
 
 // New new a dao and return.
-func New(r *redis.Redis, mc *memcache.Memcache, db *sql.DB) (d Dao, cf func(), err error) {
-	return newDao(r, mc, db)
+func New(r *redis.Redis, gr *goredis.Client, mc *memcache.Memcache, db *sql.DB) (d Dao, cf func(), err error) {
+	return newDao(r, gr, mc, db)
 }
 
-func newDao(r *redis.Redis, mc *memcache.Memcache, db *sql.DB) (d *dao, cf func(), err error) {
+func newDao(r *redis.Redis, gr *goredis.Client, mc *memcache.Memcache, db *sql.DB) (d *dao, cf func(), err error) {
 	var cfg struct {
 		DemoExpire xtime.Duration
 	}
@@ -55,6 +57,7 @@ func newDao(r *redis.Redis, mc *memcache.Memcache, db *sql.DB) (d *dao, cf func(
 		mc:         mc,
 		cache:      fanout.New("cache"),
 		demoExpire: int32(time.Duration(cfg.DemoExpire) / time.Second),
+		goredis:    gr,
 	}
 	cf = d.Close
 	return
