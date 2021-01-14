@@ -156,4 +156,110 @@ fmt.Printf("fib(4) = %d", <-fib(4))
 
 在我们前面的分布式队列工作窃取算法演练中，我们正在对任务(或 goroutines )进行排队。因为 goroutine 能很好的封装工作体，这是一种很自然的方式；但是，这里实际不是 Go 的工作窃取算法的工作方式。Go 的工作窃取算法是入队列以及窃取延续。
 
-为什么这很重要呢？
+为什么这很重要呢？排队和窃取延续做了什么是我们排队和窃取任务所没有做的呢？为了回答这个问题，我们来看一下连接点（join point）。
+
+在我们的算法之下，当一个线程到达未实现连接点（unrealized join point）时，这个线程必须暂停执行并完成对一个任务的窃取。由于正当查看这个任务在做的事时要停止连接，这被称为 stalling join（暂停连接）。在窃取任务和窃取延续算法都会暂停连接，但是在发生暂停的频率上是有很大意义的。
+
+试想一下：当创建一个 goroutine，这很像是你在程序中开启一个函数在 go func 中执行。从 goroutine 的延续将在某个点想与 goroutine 连接，这是很合理的可能。延续在 goroutine 完成之前尝试连接的情况并不少见。根据这些原理，当调度一个 goroutine 时，它就要立即开始工作这是很有意义的。
+
+现在回想一下线程入栈和出栈工作到/从队列的尾部的属性，以及其它线程从头部出栈工作。 如果我们压入一个延续至队列的尾部，这最不可能被另一个线程从队列的头部弹出被窃取，因此当我们完成 goroutine 的执行时，我们很有可能会将它捡起来从而避免了暂停。这也使得分叉（fork）的任务看起来很像一个函数调用：线程跳转执行 goroutine 并且在它完成之后返回给延续。
+
+让我们看看如何将延续窃取应用到斐波那契程序中。由于表示延续（continuation）要比任务（tasks）更不明确，我们将使用以下约定:
+
+- 当一个 continuation 在工作队列中排队时，我们将它列为 con. of X。
+- 当一个 continuation 弹出执行时，我们将显式的转换为 continuation 到下一个 fib 调用
+
+下面是 Go 运行时正在做的事情的一个更详细的表示。
+
+| T1 call stack | T1 work deque | T2 call stack | T2 work deque |
+| ------------- | ------------- | ------------- | ------------- |
+| main          |               |               |               |
+
+主 goroutine 调用 fib4 并且这个调用的延续入栈到 T1 的工作队列的尾部:
+
+| T1 call stack | T1 work deque | T2 call stack | T2 work deque |
+| ------------- | ------------- | ------------- | ------------- |
+| fib4          | cont. of main |               |               |
+
+T2 是空闲的，所以它会窃取 main 的延续：
+
+| T1 call stack | T1 work deque | T2 call stack | T2 work deque |
+| ------------- | ------------- | ------------- | ------------- |
+| fib4          |               | cont. of main |               |
+
+调用 fib4 然后调度 fib3，它是立即执行的，并且 T1 入栈 fib4 的延续到它的队列尾部：
+
+| T1 call stack | T1 work deque | T2 call stack | T2 work deque |
+| ------------- | ------------- | ------------- | ------------- |
+| fib3          | cont. of fib4 | cont. of main |               |
+
+当 T2 企图执行 main 延续时，它到达了一个还未实现连接的点；因此，它会从 T1 的队列窃取更多的工作。这次，它是调用 fib4 的延续了：
+
+| T1 call stack | T1 work deque | T2 call stack                                          | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------ | ------------- |
+| fib3          |               | cont. of main (unrealized join point)<br>cont. of fib4 |               |
+
+接下来，T1 调用 fib3 的调用 goroutine 会调用 fib3 并立即调用。那 fib3 的延续就会被入栈到它的工作队列的尾部：
+
+| T1 call stack | T1 work deque | T2 call stack                                          | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------ | ------------- |
+| fib2          | cont. of fib3 | cont. of main (unrealized join point)<br>cont. of fib4 |               |
+
+T2 执行 fib4 的延续，从 T1 结束的地方开始，并且它调度 fib2，开始立即执行并再次入队列 fib4:
+
+| T1 call stack | T1 work deque | T2 call stack                                  | T2 work deque |
+| ------------- | ------------- | ---------------------------------------------- | ------------- |
+| fib2          | cont. of fib3 | cont. of main (unrealized join point)<br/>fib2 | cont. of fib4 |
+
+下一步，T1 调用 fib2 到达了递归算法的基础判断并返回 1：
+
+| T1 call stack | T1 work deque | T2 call stack                                  | T2 work deque |
+| ------------- | ------------- | ---------------------------------------------- | ------------- |
+| return 1      | cont. of fib3 | cont. of main (unrealized join point)<br/>fib2 | cont. of fib4 |
+
+然后 T2 也达到了判断条件并返回 1:
+
+| T1 call stack | T1 work deque | T2 call stack                                          | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------ | ------------- |
+| return 1      | cont. of fib3 | cont. of main (unrealized join point)<br/>（return 1） | cont. of fib4 |
+
+T1 随后从它自己的队列中窃取并开始执行 fib1。注意，T1 上的调用链是：fib3 -> fib2 -> fib1。这在我们早之前就讨论过窃取延续的好处。
+
+| T1 call stack | T1 work deque | T2 call stack                                          | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------ | ------------- |
+| fib1          |               | cont. of main (unrealized join point)<br/>（return 1） | cont. of fib4 |
+
+T2 就到达了 fib4 的延续的最终点，但是只能一个连接点到达：fib2。fib3 的调用仍在 T1 处理器上。T2 由于没有可窃取的工作，于是就空闲了：
+
+| T1 call stack | T1 work deque | T2 call stack                                                | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------------ | ------------- |
+| fib1          |               | cont. of main (unrealized join point)<br/>fib(4) (unrealized join point) |               |
+
+T1 现在到达了延续的最终点，fib3，并且 fib2 和 fib1 两个连接点都满足了。T1 返回 2:
+
+| T1 call stack | T1 work deque | T2 call stack                                          | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------ | ------------- |
+| return 2      |               | cont. of main (unrealized join point)<br/>（return 2） |               |
+
+现在 fib4，fib3 以及 fib2 都已经满足。T2 也就能够执行计算并返回结果了（2+1=3）：
+
+| T1 call stack | T1 work deque | T2 call stack                                          | T2 work deque |
+| ------------- | ------------- | ------------------------------------------------------ | ------------- |
+|               |               | cont. of main (unrealized join point)<br/>（return 3） |               |
+
+最后主 goroutine 的连接点已经实现并接收到了调用 fib4 的结果并打印结果：
+
+| T1 call stack | T1 work deque | T2 call stack    | T2 work deque |
+| ------------- | ------------- | ---------------- | ------------- |
+|               |               | main（prints 3） |               |
+
+当我们走这个过程时，我们简要地看到了延续如何帮助在 T1 上连续地执行事情。如果我们看看这个运行(使用延续偷窃)与使用任务偷窃的运行的统计数据，就会发现更清晰的好处：
+
+| Statistics       | Continuation stealing | Task stealing         |
+| ---------------- | --------------------- | --------------------- |
+| # Steps          | 14                    | 15                    |
+| Max Deque Length | 2                     | 2                     |
+| # Stalled Joins  | 2（都在空闲的线程上） | 3（都在繁忙的线程上） |
+| 调用堆栈的大小   | 2                     | 3                     |
+
+这些统计数据可能看起来很接近，但是如果我们从更大的项目中推断，我们就可以开始看到持续窃取是如何提供显著的好处的。
