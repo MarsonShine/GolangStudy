@@ -2,12 +2,26 @@ package dao
 
 import (
 	"context"
+	"sync"
 
 	"kratos-demo/internal/model"
 
+	"github.com/MSLibs/glogger"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/database/sql"
 )
+
+var logStd *glogger.GLogger
+
+var oncer sync.Once
+
+func CreateLogger() *glogger.GLogger {
+	oncer.Do(func() {
+		log := glogger.CreateLog(glogger.GLoggerConfig{})
+		logStd = &log
+	})
+	return logStd
+}
 
 func NewDB() (db *sql.DB, cf func(), err error) {
 	var (
