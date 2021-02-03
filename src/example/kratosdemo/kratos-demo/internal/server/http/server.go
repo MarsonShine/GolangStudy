@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 
+	"kratos-demo/api"
 	pb "kratos-demo/api"
 	"kratos-demo/internal/middleware"
 	"kratos-demo/internal/middleware/cors"
@@ -29,9 +30,9 @@ func New(s pb.DemoServer) (engine *bm.Engine, err error) {
 	}
 	svc = s
 	engine = bm.DefaultServer(&cfg)
-	pb.RegisterDemoBMServer(engine, s)
 	// 日志中间件
 	middleware.UseGLogger(engine)
+	pb.RegisterDemoBMServer(engine, s)
 	// engine.Use(middleware.NewRecordRequestElapsedTime())
 	// 跨域
 	cors.NewCors().UseCros(engine)
@@ -62,6 +63,13 @@ func ping(ctx *bm.Context) {
 
 // example for http request handler.
 func howToStart(c *bm.Context) {
+	// grpcClient, err := api.NewClient(nil)
+	grpcClient, err := api.NewClientFromHttp(c.Context, nil)
+	if err == nil {
+		grpcClient.SayHello(c.Context, &pb.HelloReq{
+			Name: "marsonshine",
+		})
+	}
 	k := &model.Kratos{
 		Hello: "Golang 大法好 !!!",
 	}

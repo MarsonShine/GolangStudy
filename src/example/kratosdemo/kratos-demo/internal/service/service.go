@@ -49,7 +49,7 @@ func (s *Service) SayHelloURL(ctx context.Context, req *pb.HelloReq) (reply *pb.
 		Content: "hello " + req.Name,
 		Id:      rand.Int63(),
 	}
-	s.log.Infof("hello url %s", req.Name)
+	s.log.SetContext(&ctx).Infof("hello url %s", req.Name)
 	ss, _ := s.dao.GetDemo(ctx, "demo")
 	// fmt.Printf("这里获取 redis 的数据 = %s", ss)
 	s.log.Infof("这里获取 redis 的数据 = %s", ss)

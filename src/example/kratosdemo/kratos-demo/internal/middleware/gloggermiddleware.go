@@ -47,6 +47,7 @@ type HttpRequestPayload struct {
 	userflag   string
 	size       int64
 	duration   int64
+	startTime  time.Time
 }
 
 var _ HttpRequestPayload = HttpRequestPayload{}
