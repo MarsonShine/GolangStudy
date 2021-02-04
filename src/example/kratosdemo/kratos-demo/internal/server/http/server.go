@@ -63,8 +63,7 @@ func ping(ctx *bm.Context) {
 
 // example for http request handler.
 func howToStart(c *bm.Context) {
-	// grpcClient, err := api.NewClient(nil)
-	grpcClient, err := api.NewClientFromHttp(c.Context, nil)
+	grpcClient, err := api.NewClient(nil)
 	if err == nil {
 		grpcClient.SayHello(c.Context, &pb.HelloReq{
 			Name: "marsonshine",

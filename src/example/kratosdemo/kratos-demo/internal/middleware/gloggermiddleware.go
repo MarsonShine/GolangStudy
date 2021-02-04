@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"kratos-demo/utils"
 	"net/http"
 	"strings"
 	"time"
@@ -40,6 +41,7 @@ type HttpRequestPayload struct {
 	method     string
 	url        string
 	ip         string
+	serverip   string
 	referer    string
 	userAgent  string
 	requestId  string
@@ -52,25 +54,21 @@ type HttpRequestPayload struct {
 
 var _ HttpRequestPayload = HttpRequestPayload{}
 
-func initLogContext(ctx *bm.Context, info *HttpRequestPayload) {
+func initLogContext(bctx *bm.Context, info *HttpRequestPayload) {
 	start := time.Now()
-	// requestId := ctx.Request.Header.Get(glogger.RequestID)
-	// userflag := ctx.Request.Header.Get(glogger.UserFlag)
-	// platformId := ctx.Request.Header.Get(glogger.PlatformID)
-	ctx.Context = context.WithValue(ctx.Context, glogger.RequestID, info.requestId)
-	ctx.Context = context.WithValue(ctx.Context, glogger.UserFlag, info.userflag)
-	ctx.Context = context.WithValue(ctx.Context, glogger.PlatformID, info.platformId)
-	ctx.Context = context.WithValue(ctx.Context, "referer", info.referer)
-	ctx.Context = context.WithValue(ctx.Context, "userAgent", info.userAgent)
-	ctx.Context = context.WithValue(ctx.Context, "size", info.size)
-	ctx.Context = context.WithValue(ctx.Context, "duration", start)
-	// ctx.Set(glogger.RequestID, info.requestId)
-	// ctx.Set(glogger.UserFlag, info.userflag)
-	// ctx.Set(glogger.PlatformID, info.platformId)
-	// ctx.Set("referer", info.referer)
-	// ctx.Set("userAgent", info.userAgent)
-	// ctx.Set("size", info.size)
-	// ctx.Set("duration", start)
+	ctx := context.WithValue(bctx.Context, glogger.RequestID, info.requestId)
+	ctx = context.WithValue(ctx, "userflag", info.userflag)
+	ctx = context.WithValue(ctx, glogger.PlatformID, info.platformId)
+	ctx = context.WithValue(ctx, "referer", info.referer)
+	ctx = context.WithValue(ctx, "userAgent", info.userAgent)
+	ctx = context.WithValue(ctx, "size", info.size)
+	ctx = context.WithValue(ctx, "duration", start)
+	ctx = context.WithValue(ctx, "url", bctx.Request.URL.String())
+	ctx = context.WithValue(ctx, "sourceip", requestGetRemoteAddress(bctx.Request))
+	if serverip, err := utils.ExternalIP(); err == nil {
+		ctx = context.WithValue(ctx, "serverip", serverip)
+	}
+	bctx.Context = ctx
 }
 
 func requestGetRemoteAddress(r *http.Request) string {

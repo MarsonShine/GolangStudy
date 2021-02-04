@@ -25,15 +25,8 @@ func NewClient(cfg *warden.ClientConfig, opts ...grpc.DialOption) (DemoClient, e
 	return NewDemoClient(cc), nil
 }
 
-// 直接传递 http.context 会报错，应该附加context值
-func NewClientFromHttp(ctx context.Context, cfg *warden.ClientConfig, opts ...grpc.DialOption) (DemoClient, error) {
-	client := warden.NewClient(cfg, opts...).Use(middleware.GrpcClientLogging())
-	// cc, err := client.Dial(context.Background(), fmt.Sprintf("discovery://default/%s", AppID))
-	cc, err := client.Dial(ctx, fmt.Sprintf("direct://default/%s", target))
-	if err != nil {
-		return nil, err
-	}
-	return NewDemoClient(cc), nil
+func attachMetadata() {
+
 }
 
 // 生成 gRPC 代码

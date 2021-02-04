@@ -39,6 +39,7 @@ func New(d dao.Dao) (s *Service, cf func(), err error) {
 // SayHello grpc demo func.
 func (s *Service) SayHello(ctx context.Context, req *pb.HelloReq) (reply *empty.Empty, err error) {
 	reply = new(empty.Empty)
+	s.log.SetContext(&ctx).Infof("hello %s", req.Name)
 	fmt.Printf("hello %s", req.Name)
 	return
 }
