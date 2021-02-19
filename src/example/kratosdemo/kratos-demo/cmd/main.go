@@ -12,9 +12,11 @@ import (
 	"github.com/MSLibs/glogger"
 	"github.com/go-kratos/kratos/pkg/conf/paladin"
 	"github.com/go-kratos/kratos/pkg/log"
+	"github.com/go-kratos/kratos/pkg/net/trace/jaeger"
 )
 
 func main() {
+	os.Setenv("JAEGER_ENDPOINT", "http://192.168.3.67:14268")
 	flag.Parse()
 	// log.Init(nil) // debug flag: log.dir={path}
 	// defer log.Close()
@@ -26,6 +28,8 @@ func main() {
 		panic(err)
 	}
 
+	// trace
+	addTracing()
 	// // 服务发现
 	// bulder, err := mynaming.NewConsulDiscovery(mynaming.Config{Zone: "zone01", Env: "dev", Region: "region01"})
 	// if err != nil {
@@ -70,4 +74,8 @@ func logInit() {
 		Dir: "log.log",
 		V:   1,
 	})
+}
+
+func addTracing() {
+	jaeger.Init()
 }
