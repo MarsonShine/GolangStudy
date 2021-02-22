@@ -6,6 +6,7 @@ import (
 	pb "kratos-v2-demo/api/helloworld/v1"
 	"kratos-v2-demo/internal/conf"
 	"kratos-v2-demo/internal/service"
+
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -47,7 +48,7 @@ func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, greeter *servic
 func main() {
 	flag.Parse()
 	logger := log.NewStdLogger()
-
+	// log := log.NewHelper("main", logger)
 	config := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),
@@ -56,6 +57,9 @@ func main() {
 			return yaml.Unmarshal(kv.Value, v)
 		}),
 	)
+
+	// val := config.Value("server")
+	// log.Infof("config:server=%v", val)
 	if err := config.Load(); err != nil {
 		panic(err)
 	}
