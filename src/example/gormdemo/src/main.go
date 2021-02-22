@@ -249,7 +249,7 @@ func openDbConnection() *gorm.DB {
 	sqlDB, err := sql.Open("mysql", dsn)
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(200)
-	sqlDB.SetConnMaxLifetime(time.Millisecond * 200)
+	// sqlDB.SetConnMaxLifetime(time.Millisecond * 200)
 	db, err := gorm.Open(mysql.New(mysql.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{
