@@ -3,14 +3,18 @@ package main
 import (
 	"context"
 	"entdemo/ent"
+	"entdemo/ent/car"
+	"entdemo/ent/group"
 	"entdemo/ent/user"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -24,13 +28,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("数据库连接失败：%v", err)
 	}
+
 	sqlDB := drv.DB()
 	sqlDB.SetMaxIdleConns(20)
 	sqlDB.SetMaxOpenConns(152)
-	sqlDB.SetConnMaxLifetime(time.Millisecond * 200)
+	sqlDB.SetConnMaxLifetime(time.Millisecond * 100)
 
 	// c, err := ent.Open(dialect.MySQL, ConnectionString)
-	client = ent.NewClient(ent.Driver(drv))
+	client = ent.NewClient(ent.Driver(drv), ent.Debug(), ent.Log(sqlLogging))
 	if err != nil {
 		log.Fatalf("数据库连接失败：%v", err)
 	}
@@ -43,26 +48,20 @@ func main() {
 	startHTTPServer()
 }
 
+func sqlLogging(opts ...interface{}) {
+	log.Print(opts...)
+}
+
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := QueryUser(r.Context(), client)
+	resp := &DataResponse{Success: false}
 	if err != nil {
-		writeBackStream(w, struct {
-			message string
-			success bool
-		}{
-			err.Error(),
-			false,
-		})
+		resp.Message = err.Error()
+		writeBackStream(w, resp)
 	} else {
-		writeBackStream(w, struct {
-			message string
-			success bool
-			data    interface{}
-		}{
-			"",
-			true,
-			user,
-		})
+		resp.Success = true
+		resp.Data = user
+		writeBackStream(w, resp)
 	}
 }
 
@@ -80,30 +79,87 @@ func createUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
-	sex := false
-	u, err := client.User.
-		Create().
-		SetName("marsonshine").
-		SetAge(27).
-		SetAddress("深圳市南山区桃园街道创新大厦").
-		SetNillableSex(&sex).
-		Save(ctx)
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	vas := mux.Vars(r)
+	resp := &DataResponse{Success: false}
+	id, err := strconv.Atoi(vas["id"])
 	if err != nil {
-		return nil, fmt.Errorf("添加用户失败：%v", err)
+		resp.Message = "name 参数错误"
+		writeBackStream(w, resp)
+	} else {
+		b, err := DeleteUser(r.Context(), client, id)
+		if err != nil {
+			resp.Message = err.Error()
+		} else {
+			resp.Success = b
+		}
+		writeBackStream(w, resp)
 	}
-	log.Printf("创建用户成功：%v", u)
-	return u, nil
 }
 
-func QueryUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
-	u, err := client.User.
-		Query().
-		Where(user.NameEQ("marsonshine")).
-		Only(ctx)
+func deleteUserByNameHandler(w http.ResponseWriter, r *http.Request) {
+	vas := mux.Vars(r)
+	resp := &DataResponse{Success: false}
+	b, err := DeleteUserByName(r.Context(), client, vas["name"])
 	if err != nil {
-		return nil, fmt.Errorf("failed querying user: %v", err)
+		resp.Message = err.Error()
+	} else {
+		resp.Success = b
 	}
-	log.Println("user returned: ", u)
-	return u, nil
+	writeBackStream(w, resp)
+}
+
+func QueryGithub(ctx context.Context, client *ent.Client) error {
+	cars, err := client.Group.
+		Query().
+		Where(group.Name("GitHub")). // (Group(Name=GitHub),)
+		QueryUsers().                // (User(Name=Ariel, Age=30),)
+		QueryCars().                 // (Car(Model=Tesla, RegisteredAt=<Time>), Car(Model=Mazda, RegisteredAt=<Time>),)
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("failed getting cars: %v", err)
+	}
+	log.Println("cars returned:", cars)
+	// Output: (Car(Model=Tesla, RegisteredAt=<Time>), Car(Model=Mazda, RegisteredAt=<Time>),)
+	return nil
+}
+
+func QueryArielCars(ctx context.Context, client *ent.Client) error {
+	// Get "Ariel" from previous steps.
+	a8m := client.User.
+		Query().
+		Where(
+			user.HasCars(),
+			user.Name("Ariel"),
+		).
+		OnlyX(ctx)
+	cars, err := a8m. // Get the groups, that a8m is connected to:
+				QueryGroups(). // (Group(Name=GitHub), Group(Name=GitLab),)
+				QueryUsers().  // (User(Name=Ariel, Age=30), User(Name=Neta, Age=28),)
+				QueryCars().   //
+				Where(         //
+			car.Not( //  Get Neta and Ariel cars, but filter out
+				car.ModelEQ("Mazda"), //  those who named "Mazda"
+			), //
+		). //
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("failed getting cars: %v", err)
+	}
+	log.Println("cars returned:", cars)
+	// Output: (Car(Model=Tesla, RegisteredAt=<Time>), Car(Model=Ford, RegisteredAt=<Time>),)
+	return nil
+}
+
+func QueryGroupWithUsers(ctx context.Context, client *ent.Client) error {
+	groups, err := client.Group.
+		Query().
+		Where(group.HasUsers()).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("failed getting groups: %v", err)
+	}
+	log.Println("groups returned:", groups)
+	// Output: (Group(Name=GitHub), Group(Name=GitLab),)
+	return nil
 }
