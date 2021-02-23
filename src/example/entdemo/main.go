@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	msql "database/sql"
 	"entdemo/ent"
 	"entdemo/ent/car"
@@ -12,7 +13,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
@@ -26,17 +27,16 @@ var client *ent.Client
 var sqlr *msql.DB
 
 func main() {
-	// drv, err := sql.Open("mysql", ConnectionString)
-	// if err != nil {
-	// 	log.Fatalf("数据库连接失败：%v", err)
-	// }
+	drv, err := sql.Open("mysql", ConnectionString)
+	if err != nil {
+		log.Fatalf("数据库连接失败：%v", err)
+	}
 
-	// sqlDB := drv.DB()
-	// sqlDB.SetMaxIdleConns(20)
-	// sqlDB.SetMaxOpenConns(152)
-	// sqlDB.SetConnMaxLifetime(time.Millisecond * 100)
-	c, err := ent.Open(dialect.MySQL, ConnectionString)
-	client = c
+	sqlDB := drv.DB()
+	sqlDB.SetMaxIdleConns(20)
+	sqlDB.SetMaxOpenConns(152)
+	// c, err := ent.Open(dialect.MySQL, ConnectionString)
+	// client = c
 	// client = ent.NewClient(ent.Driver(drv), ent.Debug(), ent.Log(sqlLogging))
 	if err != nil {
 		log.Fatalf("数据库连接失败：%v", err)
@@ -94,17 +94,26 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createUserHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := CreateUser(r.Context(), client)
 	resp := &DataResponse{Success: false}
+	// u := &ent.User{Name: "marsonshine", Age: 30, Sex: false, Address: "硅谷人才公寓"}
+	// _, err := sqlr.Exec("insert into entUsers (name,age,address,sex) values (?,?,?,?)", u.Name, u.Age, u.Address, u.Sex)
+	// if err != nil {
+	// 	resp.Message = err.Error()
+	// 	resp.Success = false
+	// } else {
+	// 	resp.Success = true
+	// 	resp.Data = u
+	// }
+	user, err := CreateUser(r.Context(), client)
+
 	if err != nil {
 		resp.Message = err.Error()
 		resp.Success = false
-		writeBackStream(w, resp)
 	} else {
 		resp.Data = user
 		resp.Success = true
-		writeBackStream(w, resp)
 	}
+	writeBackStream(w, resp)
 }
 
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
