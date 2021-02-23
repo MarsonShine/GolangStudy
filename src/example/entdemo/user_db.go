@@ -6,6 +6,8 @@ import (
 	"entdemo/ent/user"
 	"fmt"
 	"log"
+	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -21,15 +23,31 @@ func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("添加用户失败：%v", err)
 	}
-	log.Printf("创建用户成功：%v", u)
+	// log.Printf("创建用户成功：%v", u)
 	return u, nil
 }
 
+func UpdateUser(ctx context.Context, client *ent.Client) (bool, error) {
+	u, err := client.User.Get(ctx, 1)
+	if err != nil {
+		return false, fmt.Errorf("查询用户失败：%v", err)
+	}
+	u, err = u.Update().
+		SetAge(u.Age + 1).
+		SetName(u.Name + strconv.FormatInt(rand.Int63(), 10)).
+		Save(ctx)
+	if err != nil {
+		return false, fmt.Errorf("更新用户失败：%v", err)
+	}
+	return true, nil
+}
+
 func QueryUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
-	u, err := client.User.
-		Query().
-		Where(user.NameEQ("marsonshine")).
-		First(ctx)
+	// u, err := client.User.
+	// 	Query().
+	// 	Where(user.NameEQ("marsonshine")).
+	// 	First(ctx)
+	u, err := client.User.Get(ctx, 1)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying user: %v", err)
 	}

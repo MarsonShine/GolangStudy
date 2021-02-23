@@ -31,6 +31,7 @@ func startHTTPServer() *http.Server {
 	router.HandleFunc("/user/create", createUserHandler)
 	router.HandleFunc("/user/delete/{id:[0-9]+}", deleteUserHandler)
 	router.HandleFunc("/user/delete/{name:[a-zA-Z]+}", deleteUserByNameHandler)
+	router.HandleFunc("/user/update", updateUserHandler)
 	go func() {
 		<-sigs
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)

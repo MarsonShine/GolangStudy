@@ -44,6 +44,10 @@ environment=CODENATION_ENV=prod
 environment=GOPATH="/root/go"
 ```
 
+## 本地文件上传至 Linux 上传文件
+
+在跳板机或是无法直接用 ftp 连的时候，方便起见就可以直接运行 `rz -be` 命令，这个命令只能上传文件，所以如果碰到附带文件夹的话，建议还是压缩包文件再上传。
+
 ## 参考资料
 
 - https://golang.org/doc/install#install

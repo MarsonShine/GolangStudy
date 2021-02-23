@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	msql "database/sql"
 	"entdemo/ent"
 	"entdemo/ent/car"
 	"entdemo/ent/group"
@@ -10,9 +11,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
-	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
@@ -23,23 +23,27 @@ const (
 
 var client *ent.Client
 
+var sqlr *msql.DB
+
 func main() {
-	drv, err := sql.Open("mysql", ConnectionString)
-	if err != nil {
-		log.Fatalf("数据库连接失败：%v", err)
-	}
+	// drv, err := sql.Open("mysql", ConnectionString)
+	// if err != nil {
+	// 	log.Fatalf("数据库连接失败：%v", err)
+	// }
 
-	sqlDB := drv.DB()
-	sqlDB.SetMaxIdleConns(20)
-	sqlDB.SetMaxOpenConns(152)
-	sqlDB.SetConnMaxLifetime(time.Millisecond * 100)
-
-	// c, err := ent.Open(dialect.MySQL, ConnectionString)
-	client = ent.NewClient(ent.Driver(drv), ent.Debug(), ent.Log(sqlLogging))
+	// sqlDB := drv.DB()
+	// sqlDB.SetMaxIdleConns(20)
+	// sqlDB.SetMaxOpenConns(152)
+	// sqlDB.SetConnMaxLifetime(time.Millisecond * 100)
+	c, err := ent.Open(dialect.MySQL, ConnectionString)
+	client = c
+	// client = ent.NewClient(ent.Driver(drv), ent.Debug(), ent.Log(sqlLogging))
 	if err != nil {
 		log.Fatalf("数据库连接失败：%v", err)
 	}
 	defer client.Close()
+	sqlr, _ = msql.Open("mysql", ConnectionString)
+	defer sqlr.Close()
 	// 运行自动迁移工具
 	if err := client.Schema.
 		Create(context.Background()); err != nil {
@@ -53,20 +57,44 @@ func sqlLogging(opts ...interface{}) {
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := QueryUser(r.Context(), client)
 	resp := &DataResponse{Success: false}
+	row, err := sqlr.Query("SELECT * FROM entUsers WHERE id = 1")
+	if err != nil {
+		resp.Message = err.Error()
+	} else {
+		for row.Next() {
+			var id int
+			var name string
+			var age int
+			var sex bool
+			var address string
+			err = row.Scan(&id, &age, &name, &sex, &address)
+			if err == nil {
+				resp.Data = &ent.User{
+					ID:      id,
+					Name:    name,
+					Age:     age,
+					Sex:     sex,
+					Address: address,
+				}
+				resp.Success = true
+			}
+		}
+	}
+	// user, err := QueryUser(r.Context(), client)
+
 	if err != nil {
 		resp.Message = err.Error()
 		writeBackStream(w, resp)
 	} else {
 		resp.Success = true
-		resp.Data = user
+		// resp.Data = user
 		writeBackStream(w, resp)
 	}
 }
 
 func createUserHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := CreateUser(context.Background(), client)
+	user, err := CreateUser(r.Context(), client)
 	resp := &DataResponse{Success: false}
 	if err != nil {
 		resp.Message = err.Error()
@@ -95,6 +123,17 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		writeBackStream(w, resp)
 	}
+}
+
+func updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	b, err := UpdateUser(r.Context(), client)
+	resp := &DataResponse{Success: false}
+	if err != nil {
+		resp.Message = err.Error()
+	} else {
+		resp.Success = b
+	}
+	writeBackStream(w, resp)
 }
 
 func deleteUserByNameHandler(w http.ResponseWriter, r *http.Request) {
