@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	ConnectionString string = "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
+	ConnectionString string = "root:123456@tcp(192.168.0.102:3306)/ent_orm?charset=utf8mb4&parseTime=True&loc=Local"
 )
 
 var client *ent.Client
