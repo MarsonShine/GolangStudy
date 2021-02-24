@@ -19,6 +19,7 @@ const (
 )
 
 var client *ent.Client
+var rowClient *sql.Driver
 
 var sqlr *msql.DB
 
@@ -27,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("数据库连接失败：%v", err)
 	}
-
+	rowClient = drv
 	sqlDB := drv.DB()
 	sqlDB.SetMaxIdleConns(15)
 	sqlDB.SetMaxOpenConns(100)

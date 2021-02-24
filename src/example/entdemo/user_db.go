@@ -5,8 +5,6 @@ import (
 	"entdemo/ent"
 	"entdemo/ent/user"
 	"fmt"
-
-	"entgo.io/ent/dialect/sql"
 )
 
 func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
@@ -34,8 +32,11 @@ func UpdateUser(ctx context.Context, client *ent.Client) (bool, error) {
 	// 	SetName(u.Name + strconv.FormatInt(rand.Int63(), 10)).
 	// 	Save(ctx)
 	// err := client.User.UpdateOneID(1).SetName("ms27946").SetAge(18).Exec(ctx)
-	sql.Update("users").Set("name", "ms27946").Set("age", 18).Where(sql.EQ("id", 1))
-	err := client.User.Update().Where(user.ID(1)).SetName("ms27946").SetAge(18).Exec(ctx)
+	// u := &ent.User{}
+	// 执行原生sql
+	err := rowClient.Exec(ctx, "update users set name = ?, age = ? where id = ?", []interface{}{"ms27946", 18, 1}, nil)
+	// sql.Update("users").Set("name", "ms27946").Set("age", 18).Where(sql.EQ("id", 1))
+	// err := client.User.Update().Where(user.ID(1)).SetName("ms27946").SetAge(18).Exec(ctx)
 	if err != nil {
 		return false, fmt.Errorf("更新用户失败：%v", err)
 	}
