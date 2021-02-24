@@ -31,6 +31,7 @@
    show variables like '%max_connections%';	// 显示最大连接属
    show global status like 'Max_used_connections'; // 服务器响应的最大连接数
    show status like 'Threads%'; // 实时查看占用的连接数和线程数
+   show variables like '%timeout%'; // 查看超时相关信息
    ```
 
    然后在初始化 db 时设置相关的信息：

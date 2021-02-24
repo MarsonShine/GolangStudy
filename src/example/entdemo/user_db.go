@@ -5,20 +5,17 @@ import (
 	"entdemo/ent"
 	"entdemo/ent/user"
 	"fmt"
-	"log"
-	"math/rand"
-	"strconv"
-	"time"
+
+	"entgo.io/ent/dialect/sql"
 )
 
 func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
-	sex := false
+	// sex := false
 	u, err := client.User.
 		Create().
 		SetName("marsonshine").
 		SetAge(27).
 		SetAddress("深圳市南山区桃园街道创新大厦").
-		SetNillableSex(&sex).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("添加用户失败：%v", err)
@@ -28,14 +25,17 @@ func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
 }
 
 func UpdateUser(ctx context.Context, client *ent.Client) (bool, error) {
-	u, err := client.User.Get(ctx, 1)
-	if err != nil {
-		return false, fmt.Errorf("查询用户失败：%v", err)
-	}
-	u, err = u.Update().
-		SetAge(u.Age + 1).
-		SetName(u.Name + strconv.FormatInt(rand.Int63(), 10)).
-		Save(ctx)
+	// u, err := client.User.Get(ctx, 1)
+	// if err != nil {
+	// 	return false, fmt.Errorf("查询用户失败：%v", err)
+	// }
+	// _, err = u.Update().
+	// 	SetAge(u.Age + 1).
+	// 	SetName(u.Name + strconv.FormatInt(rand.Int63(), 10)).
+	// 	Save(ctx)
+	// err := client.User.UpdateOneID(1).SetName("ms27946").SetAge(18).Exec(ctx)
+	sql.Update("users").Set("name", "ms27946").Set("age", 18).Where(sql.EQ("id", 1))
+	err := client.User.Update().Where(user.ID(1)).SetName("ms27946").SetAge(18).Exec(ctx)
 	if err != nil {
 		return false, fmt.Errorf("更新用户失败：%v", err)
 	}
@@ -51,7 +51,7 @@ func QueryUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed querying user: %v", err)
 	}
-	log.Println("user returned: ", u)
+	// log.Println("user returned: ", u)
 	return u, nil
 }
 
@@ -74,39 +74,39 @@ func DeleteUserByName(ctx context.Context, client *ent.Client, name string) (boo
 	return n > 0, nil
 }
 
-func CreateCars(ctx context.Context, client *ent.Client) (*ent.User, error) {
-	tesla, err := client.Car.
-		Create().
-		SetModel("Tesla").
-		SetRegisteredAt(time.Now()).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed creating car: %v", err)
-	}
-	log.Println("car was created: ", tesla)
+// func CreateCars(ctx context.Context, client *ent.Client) (*ent.User, error) {
+// 	tesla, err := client.Car.
+// 		Create().
+// 		SetModel("Tesla").
+// 		SetRegisteredAt(time.Now()).
+// 		Save(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed creating car: %v", err)
+// 	}
+// 	log.Println("car was created: ", tesla)
 
-	// 创建一个新的车品牌
-	ford, err := client.Car.
-		Create().
-		SetModel("Ford").
-		SetRegisteredAt(time.Now()).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed creating car: %v", err)
-	}
-	log.Println("car was created: ", ford)
+// 	// 创建一个新的车品牌
+// 	ford, err := client.Car.
+// 		Create().
+// 		SetModel("Ford").
+// 		SetRegisteredAt(time.Now()).
+// 		Save(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed creating car: %v", err)
+// 	}
+// 	log.Println("car was created: ", ford)
 
-	// 创建新用户，拥有多辆车
-	marsonshine, err := client.User.
-		Create().
-		SetAge(27).
-		SetName("marsonshine").
-		AddCars(tesla, ford).
-		Save(ctx)
+// 	// 创建新用户，拥有多辆车
+// 	marsonshine, err := client.User.
+// 		Create().
+// 		SetAge(27).
+// 		SetName("marsonshine").
+// 		AddCars(tesla, ford).
+// 		Save(ctx)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed creating user: %v", err)
-	}
-	log.Println("user was created: ", marsonshine)
-	return marsonshine, nil
-}
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed creating user: %v", err)
+// 	}
+// 	log.Println("user was created: ", marsonshine)
+// 	return marsonshine, nil
+// }

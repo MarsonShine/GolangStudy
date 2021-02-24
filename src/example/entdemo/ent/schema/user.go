@@ -4,7 +4,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -26,13 +25,14 @@ func (User) Fields() []ent.Field {
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return []ent.Edge{
-		// 一个用户可以有多个 car; 1:N
-		edge.To("cars", Car.Type),
-		// 一个用户可以在多个组里
-		edge.From("groups", Group.Type).
-			Ref("users"),
-	}
+	return nil
+	// return []ent.Edge{
+	// 	// 一个用户可以有多个 car; 1:N
+	// 	edge.To("cars", Car.Type),
+	// 	// 一个用户可以在多个组里
+	// 	edge.From("groups", Group.Type).
+	// 		Ref("users"),
+	// }
 }
 
 func (User) Annotations() []schema.Annotation {
