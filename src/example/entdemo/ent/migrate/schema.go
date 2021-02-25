@@ -14,13 +14,22 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "model", Type: field.TypeString},
 		{Name: "registered_at", Type: field.TypeTime},
+		{Name: "user_cars", Type: field.TypeInt, Nullable: true},
 	}
 	// CarsTable holds the schema information for the "cars" table.
 	CarsTable = &schema.Table{
-		Name:        "cars",
-		Columns:     CarsColumns,
-		PrimaryKey:  []*schema.Column{CarsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{},
+		Name:       "cars",
+		Columns:    CarsColumns,
+		PrimaryKey: []*schema.Column{CarsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:  "cars_entUsers_cars",
+				Columns: []*schema.Column{CarsColumns[3]},
+
+				RefColumns: []*schema.Column{EntUsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// GroupsColumns holds the columns for the "groups" table.
 	GroupsColumns = []*schema.Column{
@@ -49,16 +58,47 @@ var (
 		PrimaryKey:  []*schema.Column{EntUsersColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{},
 	}
+	// GroupUsersColumns holds the columns for the "group_users" table.
+	GroupUsersColumns = []*schema.Column{
+		{Name: "group_id", Type: field.TypeInt},
+		{Name: "user_id", Type: field.TypeInt},
+	}
+	// GroupUsersTable holds the schema information for the "group_users" table.
+	GroupUsersTable = &schema.Table{
+		Name:       "group_users",
+		Columns:    GroupUsersColumns,
+		PrimaryKey: []*schema.Column{GroupUsersColumns[0], GroupUsersColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:  "group_users_group_id",
+				Columns: []*schema.Column{GroupUsersColumns[0]},
+
+				RefColumns: []*schema.Column{GroupsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:  "group_users_user_id",
+				Columns: []*schema.Column{GroupUsersColumns[1]},
+
+				RefColumns: []*schema.Column{EntUsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CarsTable,
 		GroupsTable,
 		EntUsersTable,
+		GroupUsersTable,
 	}
 )
 
 func init() {
+	CarsTable.ForeignKeys[0].RefTable = EntUsersTable
 	EntUsersTable.Annotation = &entsql.Annotation{
 		Table: "entUsers",
 	}
+	GroupUsersTable.ForeignKeys[0].RefTable = GroupsTable
+	GroupUsersTable.ForeignKeys[1].RefTable = EntUsersTable
 }
