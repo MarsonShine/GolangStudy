@@ -4,9 +4,12 @@ import (
 	"flag"
 
 	pb "kratos-v2-demo/api/helloworld/v1"
+	"kratos-v2-demo/internal/biz"
 	"kratos-v2-demo/internal/conf"
+	"kratos-v2-demo/internal/data"
 	"kratos-v2-demo/internal/service"
 
+	"github.com/devfeel/mapper"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -28,6 +31,12 @@ var (
 
 func init() {
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
+	createMapper()
+}
+
+func createMapper() {
+	mapper.Register(&biz.UserDto{})
+	mapper.Register(&data.UserEntity{})
 }
 
 func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, greeter *service.GreeterService) *kratos.App {

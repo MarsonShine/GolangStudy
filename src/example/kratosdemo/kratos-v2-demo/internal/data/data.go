@@ -2,6 +2,7 @@ package data
 
 import (
 	"kratos-v2-demo/internal/conf"
+
 	"github.com/google/wire"
 )
 
@@ -16,4 +17,11 @@ type Data struct {
 // NewData .
 func NewData(c *conf.Data) (*Data, error) {
 	return &Data{}, nil
+}
+
+type UserEntity struct {
+	Name    string
+	Age     int
+	Id      int
+	Address string
 }

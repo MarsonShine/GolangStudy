@@ -15,6 +15,8 @@ const _ = http1.SupportPackageIsVersion1
 
 type GreeterHTTPServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+
+	SayHelloToGrpc(context.Context, *HelloRequest) (*HelloReply, error)
 }
 
 func RegisterGreeterHTTPServer(s http1.ServiceRegistrar, srv GreeterHTTPServer) {
@@ -39,6 +41,24 @@ func _HTTP_Greeter_SayHello_0(srv interface{}, ctx context.Context, req *http.Re
 	return out, nil
 }
 
+func _HTTP_Greeter_SayHelloToGrpc_0(srv interface{}, ctx context.Context, req *http.Request, dec func(interface{}) error) (interface{}, error) {
+	var in HelloRequest
+
+	if err := http1.BindVars(req, &in); err != nil {
+		return nil, err
+	}
+
+	if err := http1.BindForm(req, &in); err != nil {
+		return nil, err
+	}
+
+	out, err := srv.(GreeterServer).SayHelloToGrpc(ctx, &in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _HTTP_Greeter_serviceDesc = http1.ServiceDesc{
 	ServiceName: "helloworld.v1.Greeter",
 	Methods: []http1.MethodDesc{
@@ -48,6 +68,12 @@ var _HTTP_Greeter_serviceDesc = http1.ServiceDesc{
 			Method:  "GET",
 			Handler: _HTTP_Greeter_SayHello_0,
 		},
+
+		{
+			Path:    "/helloworld/grpc/{name}",
+			Method:  "GET",
+			Handler: _HTTP_Greeter_SayHelloToGrpc_0,
+		},
 	},
-	Metadata: "api/helloworld/v1/greeter.proto",
+	Metadata: "greeter.proto",
 }

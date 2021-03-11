@@ -6,13 +6,13 @@
 package main
 
 import (
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
 	"kratos-v2-demo/internal/biz"
 	"kratos-v2-demo/internal/conf"
 	"kratos-v2-demo/internal/data"
 	"kratos-v2-demo/internal/server"
 	"kratos-v2-demo/internal/service"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 // Injectors from wire.go:

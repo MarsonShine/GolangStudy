@@ -23,7 +23,7 @@ import (
 
 const stopTimeout = time.Second * 10
 
-const dsn = "root:123456@tcp(192.168.0.102:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
+const dsn = "root:123456@tcp(192.168.3.10:3306)/go_testdb?charset=utf8mb4&parseTime=True&loc=Local"
 
 // const dsn = "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
 
@@ -115,6 +115,27 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	writeBackStream(w, data)
 }
 
+func updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var u struct {
+		ID       uint
+		Name     string
+		Email    *string
+		Age      uint8
+		Birthday *models.JSONTime
+	}
+	err := decoder.Decode(&u)
+	if err != nil {
+		panic(err)
+	}
+	sysTime := time.Time(*u.Birthday)
+
+	appservice.UpdateUserService(gormDB, u.ID, u.Name, u.Email, u.Age, &sysTime)
+	var jsonResponse = []byte(`{"sucess":true, "message": "success!"}`)
+	w.Header().Set("content-type", "text/json")
+	w.Write(jsonResponse)
+}
+
 func startHTTPServer() *http.Server {
 	router := mux.NewRouter().StrictSlash(true)
 	srv := &http.Server{Addr: ":8080", Handler: router}
@@ -148,6 +169,7 @@ func startHTTPServer() *http.Server {
 		w.Header().Set("content-type", "text/json")
 		w.Write(jsonResponse)
 	})
+	router.HandleFunc("/user/update", updateUserHandler)
 	router.HandleFunc("/user/delete/{id:[0-9]+}", deleteUserHandler)
 
 	productRouterInitialize(router)
@@ -247,8 +269,8 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 func openDbConnection() *gorm.DB {
 	// db, err := gorm.Open(sqlite.Open("./src/test.db"), &gorm.Config{})
 	sqlDB, err := sql.Open("mysql", dsn)
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(200)
+	sqlDB.SetMaxIdleConns(15)
+	sqlDB.SetMaxOpenConns(100)
 	// sqlDB.SetConnMaxLifetime(time.Millisecond * 200)
 	db, err := gorm.Open(mysql.New(mysql.Config{
 		Conn: sqlDB,
