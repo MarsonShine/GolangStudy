@@ -36,18 +36,21 @@ func (us UserService) Update(user *models.User) bool {
 	if user == nil {
 		panic("用户不存在！")
 	} else {
+		user.CreatedAt = time.Now()
+		user.UpdatedAt = time.Now()
+		us.db.Save(user)
 		// 查最新的用户
-		var existUser models.User
-		result := us.db.Where("email = ?", *user.Email).First(&existUser)
-		if result.RowsAffected > 0 {
-			existUser.Name = user.Name
-			existUser.Age = user.Age
-			existUser.Email = user.Email
-			existUser.Birthday = user.Birthday
-			us.db.Save(&existUser)
-		} else {
-			panic("用户不存在！")
-		}
+		// var existUser models.User
+		// result := us.db.Where("email = ?", *user.Email).First(&existUser)
+		// if result.RowsAffected > 0 {
+		// 	existUser.Name = user.Name
+		// 	existUser.Age = user.Age
+		// 	existUser.Email = user.Email
+		// 	existUser.Birthday = user.Birthday
+		// 	us.db.Save(&existUser)
+		// } else {
+		// 	panic("用户不存在！")
+		// }
 
 	}
 	return true
@@ -80,6 +83,10 @@ func CreateUserService(gormDB *gorm.DB, name string, email *string, age uint8, b
 	createUser(UserService{db: gormDB}, models.User{Name: name, Email: email, Age: age, Birthday: user.Birthday})
 }
 
+func UpdateUserService(gormDB *gorm.DB, id uint, name string, email *string, age uint8, birthday *time.Time) {
+	updateUser(UserService{db: gormDB}, models.User{ID: id, Name: name, Email: email, Age: age, Birthday: birthday})
+}
+
 // 获取所有用户
 func GetUserAll() *[]models.User {
 	var mydb = openDbConnection()
@@ -108,6 +115,10 @@ func DeleteUserByUserID(id uint) bool {
 
 func createUser(uo contracts.UserOperation, user models.User) {
 	uo.Create(&user)
+}
+
+func updateUser(uo contracts.UserOperation, user models.User) {
+	uo.Update(&user)
 }
 
 func openDbConnection() *gorm.DB {

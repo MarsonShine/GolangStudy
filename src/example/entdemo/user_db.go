@@ -6,19 +6,16 @@ import (
 	"entdemo/ent/user"
 	"fmt"
 	"log"
-	"math/rand"
-	"strconv"
 	"time"
 )
 
 func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
-	sex := false
+	// sex := false
 	u, err := client.User.
 		Create().
 		SetName("marsonshine").
 		SetAge(27).
 		SetAddress("深圳市南山区桃园街道创新大厦").
-		SetNillableSex(&sex).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("添加用户失败：%v", err)
@@ -28,14 +25,20 @@ func CreateUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
 }
 
 func UpdateUser(ctx context.Context, client *ent.Client) (bool, error) {
-	u, err := client.User.Get(ctx, 1)
-	if err != nil {
-		return false, fmt.Errorf("查询用户失败：%v", err)
-	}
-	u, err = u.Update().
-		SetAge(u.Age + 1).
-		SetName(u.Name + strconv.FormatInt(rand.Int63(), 10)).
-		Save(ctx)
+	// u, err := client.User.Get(ctx, 1)
+	// if err != nil {
+	// 	return false, fmt.Errorf("查询用户失败：%v", err)
+	// }
+	// _, err = u.Update().
+	// 	SetAge(u.Age + 1).
+	// 	SetName(u.Name + strconv.FormatInt(rand.Int63(), 10)).
+	// 	Save(ctx)
+	// err := client.User.UpdateOneID(1).SetName("ms27946").SetAge(18).Exec(ctx)
+	// u := &ent.User{}
+	// 执行原生sql
+	// err := rowClient.Exec(ctx, "update users set name = ?, age = ? where id = ?", []interface{}{"ms27946", 18, 1}, nil)
+	// sql.Update("users").Set("name", "ms27946").Set("age", 18).Where(sql.EQ("id", 1))
+	err := client.User.Update().Where(user.ID(1)).SetName("ms27946").SetAge(18).Exec(ctx)
 	if err != nil {
 		return false, fmt.Errorf("更新用户失败：%v", err)
 	}
@@ -51,7 +54,7 @@ func QueryUser(ctx context.Context, client *ent.Client) (*ent.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed querying user: %v", err)
 	}
-	log.Println("user returned: ", u)
+	// log.Println("user returned: ", u)
 	return u, nil
 }
 

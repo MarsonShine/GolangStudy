@@ -5,6 +5,7 @@ import (
 
 	v1 "kratos-v2-demo/api/helloworld/v1"
 	"kratos-v2-demo/internal/biz"
+
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -24,5 +25,12 @@ func NewGreeterService(uc *biz.GreeterUsecase, logger log.Logger) *GreeterServic
 // SayHello implements helloworld.GreeterServer
 func (s *GreeterService) SayHello(ctx context.Context, in *v1.HelloRequest) (*v1.HelloReply, error) {
 	s.log.Infof("SayHello Received: %v", in.GetName())
+	return &v1.HelloReply{Message: "Hello " + in.GetName()}, nil
+}
+
+func (s *GreeterService) SayHelloToGrpc(ctx context.Context, in *v1.HelloRequest) (*v1.HelloReply, error) {
+	s.log.Infof("SayHelloToGrpc Received: %v", in.GetName())
+	// conn, err := transgrpc.
+	// v1.NewGreeterClient()
 	return &v1.HelloReply{Message: "Hello " + in.GetName()}, nil
 }

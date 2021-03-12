@@ -17,6 +17,12 @@ service Greeter {
             get: "/helloworld/{name}",
         };
     }
+  
+  rpc SayHelloToGrpc(HelloRequest) returns (HelloReply) {
+        option (google.api.http) = {
+            get: "/helloworld/grpc/{name}",
+        };
+  }
 }
 
 // The request message containing the user's name.
