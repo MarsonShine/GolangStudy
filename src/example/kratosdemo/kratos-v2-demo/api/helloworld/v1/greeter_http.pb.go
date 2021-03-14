@@ -5,75 +5,59 @@ package v1
 import (
 	context "context"
 	http1 "github.com/go-kratos/kratos/v2/transport/http"
+	binding "github.com/go-kratos/kratos/v2/transport/http/binding"
+	mux "github.com/gorilla/mux"
 	http "net/http"
 )
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the kratos package it is being compiled against.
-// context./http.
+var _ = new(http.Request)
+var _ = new(context.Context)
+var _ = binding.MapProto
+var _ = mux.NewRouter
+
 const _ = http1.SupportPackageIsVersion1
 
-type GreeterHTTPServer interface {
+type GreeterHandler interface {
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
-
-	SayHelloToGrpc(context.Context, *HelloRequest) (*HelloReply, error)
 }
 
-func RegisterGreeterHTTPServer(s http1.ServiceRegistrar, srv GreeterHTTPServer) {
-	s.RegisterService(&_HTTP_Greeter_serviceDesc, srv)
-}
-
-func _HTTP_Greeter_SayHello_0(srv interface{}, ctx context.Context, req *http.Request, dec func(interface{}) error) (interface{}, error) {
-	var in HelloRequest
-
-	if err := http1.BindVars(req, &in); err != nil {
-		return nil, err
+func NewGreeterHandler(srv GreeterHandler, opts ...http1.HandleOption) http.Handler {
+	h := http1.DefaultHandleOptions()
+	for _, o := range opts {
+		o(&h)
 	}
+	r := mux.NewRouter()
 
-	if err := http1.BindForm(req, &in); err != nil {
-		return nil, err
-	}
+	r.HandleFunc("/helloworld/{name}", func(w http.ResponseWriter, r *http.Request) {
+		var in HelloRequest
+		if err := h.Decode(r, &in); err != nil {
+			h.Error(w, r, err)
+			return
+		}
 
-	out, err := srv.(GreeterServer).SayHello(ctx, &in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+		if err := binding.MapProto(&in, mux.Vars(r)); err != nil {
+			h.Error(w, r, err)
+			return
+		}
 
-func _HTTP_Greeter_SayHelloToGrpc_0(srv interface{}, ctx context.Context, req *http.Request, dec func(interface{}) error) (interface{}, error) {
-	var in HelloRequest
+		next := func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SayHello(ctx, req.(*HelloRequest))
+		}
+		if h.Middleware != nil {
+			next = h.Middleware(next)
+		}
+		out, err := next(r.Context(), &in)
+		if err != nil {
+			h.Error(w, r, err)
+			return
+		}
+		reply := out.(*HelloReply)
+		if err := h.Encode(w, r, reply); err != nil {
+			h.Error(w, r, err)
+		}
+	}).Methods("GET")
 
-	if err := http1.BindVars(req, &in); err != nil {
-		return nil, err
-	}
-
-	if err := http1.BindForm(req, &in); err != nil {
-		return nil, err
-	}
-
-	out, err := srv.(GreeterServer).SayHelloToGrpc(ctx, &in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-var _HTTP_Greeter_serviceDesc = http1.ServiceDesc{
-	ServiceName: "helloworld.v1.Greeter",
-	Methods: []http1.MethodDesc{
-
-		{
-			Path:    "/helloworld/{name}",
-			Method:  "GET",
-			Handler: _HTTP_Greeter_SayHello_0,
-		},
-
-		{
-			Path:    "/helloworld/grpc/{name}",
-			Method:  "GET",
-			Handler: _HTTP_Greeter_SayHelloToGrpc_0,
-		},
-	},
-	Metadata: "greeter.proto",
+	return r
 }

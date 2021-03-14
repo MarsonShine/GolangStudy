@@ -2,14 +2,9 @@ package main
 
 import (
 	"flag"
+	"os"
 
-	pb "kratos-v2-demo/api/helloworld/v1"
-	"kratos-v2-demo/internal/biz"
 	"kratos-v2-demo/internal/conf"
-	"kratos-v2-demo/internal/data"
-	"kratos-v2-demo/internal/service"
-
-	"github.com/devfeel/mapper"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -31,17 +26,9 @@ var (
 
 func init() {
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
-	createMapper()
 }
 
-func createMapper() {
-	mapper.Register(&biz.UserDto{})
-	mapper.Register(&data.UserEntity{})
-}
-
-func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, greeter *service.GreeterService) *kratos.App {
-	pb.RegisterGreeterServer(gs, greeter)
-	pb.RegisterGreeterHTTPServer(hs, greeter)
+func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server) *kratos.App {
 	return kratos.New(
 		kratos.Name(Name),
 		kratos.Version(Version),
@@ -56,9 +43,9 @@ func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, greeter *servic
 
 func main() {
 	flag.Parse()
-	logger := log.NewStdLogger()
-	// log := log.NewHelper("main", logger)
-	config := config.New(
+	logger := log.NewStdLogger(os.Stdout)
+
+	c := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),
 		),
@@ -66,15 +53,12 @@ func main() {
 			return yaml.Unmarshal(kv.Value, v)
 		}),
 	)
-
-	// val := config.Value("server")
-	// log.Infof("config:server=%v", val)
-	if err := config.Load(); err != nil {
+	if err := c.Load(); err != nil {
 		panic(err)
 	}
 
 	var bc conf.Bootstrap
-	if err := config.Scan(&bc); err != nil {
+	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
 
