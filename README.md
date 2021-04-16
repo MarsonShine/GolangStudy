@@ -11,6 +11,8 @@ golang自学仓库
 
 《Go 编程风格指南》- 中译版：https://github.com/xxjwxc/uber_go_guide_cn
 
+《Go-advice》：https://github.com/cristaloleg/go-advice/blob/master/README_ZH.md
+
 
 
 # Go 项目部署

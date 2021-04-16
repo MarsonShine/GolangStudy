@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"io"
+
+	"golang.org/x/tools/go/analysis/passes/nilfunc"
 )
 
 //因为在Go语言中只有当两个或更多的类型实现一个接口时才使用接口，它们必定会从任意特定的实现细节中抽象出来。结果就是有更少和更简单方法的更小的接口
@@ -39,3 +41,22 @@ func formatOneValue(x interface{}) string {
 	// ...其它类型
 	return string("")
 }
+
+// 接口的完整性检查，这是最佳实践
+type Shape interface {
+	Sides() int
+	Area() int
+}
+type Square struct {
+	len int
+}
+
+func (s *Square) Sides() int {
+	return 4
+}
+func (s *Square) Area() int {
+	return 4
+}
+
+// 这里没有对 Shape 接口的所有方法进行实现，所以我们要通过如下方式对接口实现进行完整性检查
+var _ Shape = (*Square)(nil)
