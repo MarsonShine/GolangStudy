@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"reflect"
 	"runtime"
 	"time"
-	http1 "tutorials/decorator/http"
 )
 
 func decorator(f func(s string)) func(s string) {
@@ -31,12 +29,30 @@ func main() {
 	sum2 := timedSumFunc(Sum2)
 	fmt.Printf("%d, %d\n", sum1(-10000, 10000000), sum2(-10000, 10000000))
 
-	http.HandleFunc("/v1/hello", http1.WithServerHeader(http1.Hello))          // 这样写有点不好看，可以利用 Pipeline 优化
-	http.HandleFunc("/v2/hello", Handler(http1.Hello, http1.WithServerHeader)) // 可读性相对更好
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+	// http.HandleFunc("/v1/hello", http1.WithServerHeader(http1.Hello))          // 这样写有点不好看，可以利用 Pipeline 优化
+	// http.HandleFunc("/v2/hello", Handler(http1.Hello, http1.WithServerHeader)) // 可读性相对更好
+	// err := http.ListenAndServe(":8080", nil)
+	// if err != nil {
+	// 	log.Fatal("ListenAndServe: ", err)
+	// }
+
+	// 范型 decorator
+	type MyFoo func(int, int, int) int
+	var myfoo MyFoo
+	Decorator(&myfoo, foo)
+	myfoo(1, 2, 3)
+
+	mybar := bar
+	Decorator(&mybar, bar)
+	mybar("hello,", "world!")
+}
+func foo(a, b, c int) int {
+	fmt.Printf("%d, %d, %d \n", a, b, c)
+	return a + b + c
+}
+func bar(a, b string) string {
+	fmt.Printf("%s, %s \n", a, b)
+	return a + b
 }
 
 type SumFunc func(int64, int64) int64
@@ -95,6 +111,6 @@ func Decorator(decoPtr, fn interface{}) (err error) {
 		fmt.Println("after")
 		return
 	})
-	decoratedFunc.Set(v)
+	decoratedFunc.Set(v) // v 赋值给 decoratedFunc
 	return
 }
