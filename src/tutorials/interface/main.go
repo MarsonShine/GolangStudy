@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"io"
-
-	"golang.org/x/tools/go/analysis/passes/nilfunc"
 )
 
 //因为在Go语言中只有当两个或更多的类型实现一个接口时才使用接口，它们必定会从任意特定的实现细节中抽象出来。结果就是有更少和更简单方法的更小的接口
