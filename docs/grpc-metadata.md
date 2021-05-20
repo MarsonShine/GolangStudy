@@ -151,3 +151,58 @@ trailer := stream.Trailer()
 
 ### 检索 metadata
 
+为了读取客户端发送的 metadata，服务端需要从 RPC 的上下文 context 中检索。如果是一个 unary call，那么对应的就是 RPC 处理程序的 context。对于 stream call，服务端就需要从流中获取上下文。
+
+#### Unary Call
+
+```go
+func (s *server) SomeRPC(ctx context.Context, in *pb.someRequest) (*pb.someResponse, error) {
+    md, ok := metadata.FromIncomingContext(ctx)
+    // do something with metadata
+}
+```
+
+#### Stream Call
+
+```go
+func (s *server) SomeStreamingRPC(stream pb.Service_SomeStreamingRPCServer) error {
+    md, ok := metadata.FromIncomingContext(stream.Context()) // get context from stream
+    // do something with metadata
+}
+```
+
+### 发送 metadata
+
+#### Unary Call
+
+在 unary call 中向客户端发送 header 和 trailer，服务端需要调用 [SendHeader](https://godoc.org/google.golang.org/grpc#SendHeader) 和 [SendTrailer](https://godoc.org/google.golang.org/grpc#SetTrailer) 函数，它们在 [grpc](https://godoc.org/google.golang.org/grpc) 模块里。这两个函数的第一个参数都需要传递一个上下文。这个上下文应该是 RPC 处理程序的上下文或者是派生自它的上下文：
+
+```go
+func (s *server) SomeRPC(ctx context.Context, in *pb.someRequest) (*pb.someResponse, error) {
+    // create and send header
+    header := metadata.Pairs("header-key", "val")
+    grpc.SendHeader(ctx, header)
+    // create and set trailer
+    trailer := metadata.Pairs("trailer-key", "val")
+    grpc.SetTrailer(ctx, trailer)
+}
+```
+
+#### Stream Call
+
+对于流调用，header 和 trailer 也可能使用 `SendHeader` 和 `SendTrailer` 发送，这两个函数是在接口 [ServerStream](https://godoc.org/google.golang.org/grpc#ServerStream) 里的两个方法：
+
+```go
+func (s *server) SomeStreamingRPC(stream pb.Service_SomeStreamingRPCServer) error {
+    // create and send header
+    header := metadata.Pairs("header-key", "val")
+    stream.SendHeader(header)
+    // create and set trailer
+    trailer := metadata.Pairs("trailer-key", "val")
+    stream.SetTrailer(trailer)
+}
+```
+
+# 个人出现的问题
+
+因为在查如何在 rpc 的客户端和服务端传值时，查到是用 `metadata.FromIncomingContext` 获取。实际上还有一点没有提到（奇怪的是网上的资料对这一点都没有提，难道是默认都知道的点？），那就是客户端要向服务端发送数据，那么就得用 `metadata.NewOutgoingContext` 发送数据。也就是上面文档提到的。
