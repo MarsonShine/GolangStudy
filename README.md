@@ -13,6 +13,8 @@ golang自学仓库
 
 《Go-advice》：https://github.com/cristaloleg/go-advice/blob/master/README_ZH.md
 
+《Go 安全指南最佳实践》：https://github.com/Tencent/secguide/blob/main/Go安全指南.md
+
 
 
 # Go 项目部署
