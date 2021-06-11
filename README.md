@@ -13,8 +13,6 @@ golang自学仓库
 
 《Go-advice》：https://github.com/cristaloleg/go-advice/blob/master/README_ZH.md
 
-《Go 安全指南最佳实践》：https://github.com/Tencent/secguide/blob/main/Go安全指南.md
-
 
 
 # Go 项目部署
@@ -52,7 +50,47 @@ environment=GOPATH="/root/go"
 
 在跳板机或是无法直接用 ftp 连的时候，方便起见就可以直接运行 `rz -be` 命令，这个命令只能上传文件，所以如果碰到附带文件夹的话，建议还是压缩包文件再上传。
 
-## 参考资料
+# VSCode-GO 
+
+## 指定 protoc 路径
+
+```json
+"protoc": {  
+    "options": [
+        "--proto_path=${env.GOPATH}/pkg/mod/github.com/go-kratos/kratos/v2@v2.0.0-alpha6/third_party"
+    ]
+},
+```
+
+## 单元测试配置
+
+### 设置环境变量
+
+点击 `File -> Preferences -> Settings` 添加如下节点：
+
+```json
+"go.testEnvVars": {
+    "Environment":"dev"
+}
+```
+
+### 取消缓存
+
+```json
+"go.testFlags": [
+    "-count=1"
+],
+```
+
+### 设置超时时间
+
+```json
+"go.testTimeout": "300s"
+```
+
+
+
+# 参考资料
 
 - https://golang.org/doc/install#install
 - https://medium.com/@monirz/deploy-golang-app-in-5-minutes-ff354954fa8e
