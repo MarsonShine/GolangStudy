@@ -29,13 +29,15 @@ func duplicate(once sync.Once) {
 
 func pool() {
 	myPool := &sync.Pool{
-		New: func() interface{} {
-			fmt.Println("Creating new instance.")
-			return struct{}{}
-		},
+		// New: func() interface{} {
+		// 	fmt.Println("Creating new instance.")
+		// 	return struct{}{}
+		// },
 	}
-	myPool.Get()             //1
-	instance := myPool.Get() //1
-	myPool.Put(instance)     //2
-	myPool.Get()             //3
+	o := myPool.Get() //1
+	myPool.Put(1)
+	fmt.Println(o)
+	// instance := myPool.Get() //1
+	// myPool.Put(instance)     //2
+	// myPool.Get()             //3
 }
