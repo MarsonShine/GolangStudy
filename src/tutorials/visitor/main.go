@@ -132,3 +132,16 @@ func (v LogVisitor) Visit(fn VisitorFunc) error {
 		return err
 	})
 }
+
+func majorityElement(nums []int) int {
+	flag := map[int]bool{}
+	for i := 0; i < len(nums); i++ {
+		flag[nums[i]] = true
+	}
+	for i := 1; i < (2 >> 32); i++ {
+		if _, ok := flag[i]; !ok {
+			return i
+		}
+	}
+	return 1
+}
