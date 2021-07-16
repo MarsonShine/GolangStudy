@@ -15,14 +15,6 @@ Goroutine 调度器，它是负责在工作线程上分发准备运行的 gorout
 
 为了解决这个问题，于是就引入了 Processor 这个概念。引入了这个对象并不会因为多了一个对象开销性能都会有影响，反而这方面开销都下降了。P 其实负责的是 M 与 G 之间的调度相关的操作，在执行 G 时 P 一定要与 M 绑定。并且把 M，schedule 里面的对象都转移到 P 中去了，所以 M 与 调度器原来的操作反而变得更干净了。如[调度设计文档](https://docs.google.com/document/d/1TTj4T2JO42uD5ID9e89oa0sLKhJYD0Y_kqxDv3I3XMw/edit#)中提到的：当 M 准备执行 Go 代码时会从集合表中弹出一个 P；当执行代码结束后就会将 P 推进集合中。所以当 M 需要执行 Go 代码时，必须要与 P 绑定。而新增的这个机制，就是为了替代原来调度器中的 sched.atomic(mcpu/mcpumax)。
 
-
-
-
-
-
-
-
-
 现在的调度模型主要分为三个概念：
 
 - Goroutine(G)，表示待执行的任务
