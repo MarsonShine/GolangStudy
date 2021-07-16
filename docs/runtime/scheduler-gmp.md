@@ -15,6 +15,17 @@ Goroutine 调度器，它是负责在工作线程上分发准备运行的 gorout
 
 为了解决这个问题，于是就引入了 Processor 这个概念。引入了这个对象并不会因为多了一个对象开销性能都会有影响，反而这方面开销都下降了。P 其实负责的是 M 与 G 之间的调度相关的操作，在执行 G 时 P 一定要与 M 绑定。并且把 M，schedule 里面的对象都转移到 P 中去了，所以 M 与 调度器原来的操作反而变得更干净了。如[调度设计文档](https://docs.google.com/document/d/1TTj4T2JO42uD5ID9e89oa0sLKhJYD0Y_kqxDv3I3XMw/edit#)中提到的：当 M 准备执行 Go 代码时会从集合表中弹出一个 P；当执行代码结束后就会将 P 推进集合中。所以当 M 需要执行 Go 代码时，必须要与 P 绑定。而新增的这个机制，就是为了替代原来调度器中的 sched.atomic(mcpu/mcpumax)。
 
+在设计文档中还讲到了调度时发生系统启动、挂起、以及恢复（Syscall Park/Unpark）的指导方针，并且在后面的调度实现提供了依据。
+
+> 从创建 G 就必须要确保由其他的 M 在执行 G。同样当 M 进入系统调用时就必须要确保由其他的 M 来执行 Go 代码。
+>
+> 这时有两种选择，要么立即阻塞/解塞，要么自旋。关于自旋有两种级别：
+>
+> 1. 空闲的 M 同一个相关联的 P 自旋一段时间来寻找新的 G
+> 2. 一个 M 与一个相关联的 P 自旋等待可用的 G
+>
+> 存在类型为上述 2 的空闲 M 时，类型为 1 的空闲 M 不会阻塞。当产生一个新 G 或 M 进入 Syscall 又或是 M 从空闲转位忙碌时，能确保至少有一个 M 可以执行。这样就避免了过多的 M 阻塞/解塞。
+
 现在的调度模型主要分为三个概念：
 
 - Goroutine(G)，表示待执行的任务
@@ -22,8 +33,6 @@ Goroutine 调度器，它是负责在工作线程上分发准备运行的 gorout
 - 处理器(P)，执行 Go 代码所需要的一种资源
 
 P 必须要绑定到 M 上来执行具体的 Go 代码。
-
-
 
 在讲 GMP 调度模型之前，我们先来了解以下 G、M、P 这三个对象有哪些核心变量。
 
@@ -241,7 +250,7 @@ func procresize(nprocs int32) *p {
 
 ### 小结
 
-关于调度器启动总起来就是如下步骤：
+调度器启动总起来就是如下步骤：
 
 - 程序启动，编译器调用 runtime.schedinit，初始化系统信息、gc 初始化以及其它相关的信息
 - 调用 `getg` 获取当前
@@ -423,31 +432,44 @@ func runqputslow(_p_ *p, gp *g, h, t uint32) bool {
 
 ## 调度
 
-在执行完 `schedinit` 之后就会调用创建 M 的入口函数 [runtime.mstart](https://github.com/golang/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L1339)，前者内部会调用 [runtime.mstart1](https://github.com/golang/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L1380)。前者主要初始化 g0 的 stackguard0 和 stackguard1 字段。
+在执行完 `schedinit` 之后就会调用创建 M 的入口函数 [runtime.mstart](https://github.com/golang/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L1339)，前者内部会调用 [runtime.mstart1](https://github.com/golang/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L1380)。前者主要初始化 g0 的 stackguard0 和 stackguard1 字段。后者会初始化线程 m 以及 m0 独有的逻辑（信号处理程序）。最后会开始调用 [runtime.schedule](https://github.com/MarsonShine/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L3291) 进行调度。
 
+schedule 主要工作就是创建 g。但是创建 g 的过程非常复杂，在调度 g 之前进行了多次判断：
 
+1. 首先判断是否因为 gc 等待，如果是因为 gc 就等待 gc 结束。
+2. 判断是否执行安全点函数。
 
+剩下就要针对各种情况对 g 进行赋值：
 
+3. 如果存在 gc 标记作业，那么就得去 gc 控制器中尝试获取可运行的 g。
+4. 3 没有成功获取，则通过**一定的算法尽量公平的（魔法数字 61）**通过 [runtime.globrunqget](https://github.com/MarsonShine/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L5779) 先尝试从全局可运行队列中获取 g，在返回的同时还会将全局队列中的待运行的 g 一次性取一份到当前 p 下的局部队列中。
+5. 如果全局队列中没有 g，则去当前线程下的 p 的 runq 队列中获取
+6. p 局部队列中也没有，那么就会同步调用 [runtime.findrunnable](https://github.com/MarsonShine/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L2705) 等待返回一个可运行的 g。
+   - 这部分的功能非常复杂，总的来说就是去其他 P 的局部或全局运行队列中窃取可运行的 g
+   - 轮训网络查看是否有 g 等待运行
+   - 在返回可运行的 g 之前还会判断线程自旋是否超过了正在活跃的线程数，超过了就阻塞，来避免 CPU 的负担过大。
+   - 在循环窃取的时候能还通过窃取计数器去传递窃取的次数
+7. 最终返回可运行的 g 去执行调度 [runtime.execute](https://github.com/MarsonShine/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/proc.go#L2670)。
 
+最后就会调用把获取的 g 并把其中的调度器信息传递给 [runtime.gogo(asm-amd64)](https://github.com/MarsonShine/go/blob/aa4e0f528e1e018e2847decb549cfc5ac07ecf20/src/runtime/asm_amd64.s#L257)。在这个函数中会根据传递的调度信息中的 gobuf 来获取程序计数器 pc 与栈指针以及对应的上下文信息。这样就可以根据这些数据恢复到要执行的 fn 对应的地址来继续执行。
 
+> 关于切换 g 然后根据获取的 pc、sp 以及 context 恢复在切换 g 之前的位置继续往下执行的过程，熟悉 c# async await 状态机切换函数调用的过程的同学可以将此等同（不负责任）
 
+最后就会调用 [runtime.goexit](https://draveness.me/golang/tree/runtime.goexit) 退出，退出之后最终会在 g0 的栈上找到 [runtime.goexit0](https://draveness.me/golang/tree/runtime.goexit0) 该函数，将 goroutine 的状态置为 _Gdead，并清理它的字段信息、取消与 m 的关系、移除 g 并调用 [runtime.gfput](https://github.com/golang/go/blob/41d8e61a6b9d8f9db912626eb2bbc535e929fefc/src/runtime/proc.go#L4062) 推送到当前 p 下的空闲列表 gFree 列表中。然后又重新调用 runtime.schedule 进行一下轮调度。
 
+**所以这个调度是一个不断循环上述的调度过程**。
 
+> 注意：⚠️⚠️⚠️
+>
+> 关于 runtime.gogo 中最后会调用 runtime.goexit 的说法我参考了 dravenss《Go 语言程序与设计》中 [6.5 调度器](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/)的说法，我在汇编代码中并没有找到这种说法的痕迹（也是因为没有看懂这里）。
 
+至此，整个由调度器启动到创建初始化线程再到获取或创建 G 再将 P 与之要执行的线程关联最后到结束至下一轮调度循环的过程就分析完了。其实这里面还有很多被我忽略的细节，比如还有大量的 trace 的功能、以及每个对象的对于栈 size 的重计算、等待及等待队列 [runtime.sudog](https://github.com/golang/go/blob/41d8e61a6b9d8f9db912626eb2bbc535e929fefc/src/runtime/runtime2.go#L345) 、自旋的细节都没有覆盖到。一是涉及到这些会让我了解并分析调度过程变得更加复杂，二是那些跟 GMP 调度关系不是很大。
 
+### 小结
 
+关于调度器的过程就是当一个新的 G 或已存在的 G 成为可运行状态时，它就会被推送至可运行的携程集合 runq 中。当 P 执行完 G 时就会从可运行 runq 集合中弹出 G 作为一下个要运行的 G。如果集合中没有就会去其它 P 下的 runq 队列中获取 G；如果还没有就去全局的 runq 链表中获取。一次窃取多个到自己 P 下的 runq 中。
 
-
-
-
-
-
-
-
-
-
-
-
+但凡涉及到全局队列操作时都要上锁保证当前队列不被其他线程更改。
 
 ## 参考链接
 
