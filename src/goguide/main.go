@@ -26,9 +26,10 @@ func main() {
 	// var f2 F = &S2{}
 	// poll_bad(10)                               // 是几秒钟还是几毫秒，不清楚
 	// poll_good(time.Duration(10) * time.Second) // 能清晰的知道是秒
-	reflectExample()
+	// reflectExample()
 	// editReflectValue()
-	editAddressReflectValue()
+	// editAddressReflectValue()
+	condSync()
 }
 
 type Handler struct {
