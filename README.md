@@ -13,7 +13,7 @@ golang自学仓库
 
 《Go-advice》：https://github.com/cristaloleg/go-advice/blob/master/README_ZH.md
 
-《Go by Example 中文版》：https://gobyexample-cn.github.io/
+《go by example》：英文版：https://gobyexample.com 中文版：https://gobyexample-cn.github.io
 
 # Go 项目部署
 
