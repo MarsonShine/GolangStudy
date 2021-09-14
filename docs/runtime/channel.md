@@ -321,4 +321,180 @@ runtime.chanrecv 的实现与 runtime.chansend 的实现一致：
 
 - 在一个空 Channel 接收数据时会直接调用 gopark 休眠让出处理器的使用权；
 - 如果 Channel 已经关闭并且缓冲区不存在任何数据时，则会清楚 ep 指针的数据并立即返回；
-- 
+
+除去上面这两个特殊的情况，同样的，接收数据逻辑与发送数据类似：
+
+- 当检测到发送者等待队列中还有空闲的发送者，就会直接从发送者接收消息。
+- 如果 Channel 缓冲区还有数据时，从 Channel 的缓冲区获取接收数据。
+- 当 Channel 缓冲区不存在数据时，等待其它 Goroutine 向 Channel 发送数据。
+
+### 直接接收数据
+
+直接接收数据的逻辑与发送信息的逻辑几乎一样：
+
+```go
+func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+	...
+	if sg := c.sendq.dequeue(); sg != nil {
+		// Found a waiting sender. If buffer is size 0, receive value
+		// directly from sender. Otherwise, receive from head of queue
+		// and add sender's value to the tail of the queue (both map to
+		// the same buffer slot because the queue is full).
+		recv(c, sg, ep, func() { unlock(&c.lock) }, 3)
+		return true, true
+	}
+	...
+
+}
+```
+
+如果发现 Channel 中的发送等待着队列中还有 Goroutine，则直接取出来并通过 [runtime.recv](https://github.com/golang/go/blob/master/src/runtime/chan.go#L608) 发送数据。
+
+```
+func recv(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf func(), skip int) {
+		if c.dataqsiz == 0 {
+		if raceenabled {
+			racesync(c, sg)
+		}
+		if ep != nil {
+			// copy data from sender
+			recvDirect(c.elemtype, sg, ep)
+		}
+	} else {	
+		qp := chanbuf(c, c.recvx)
+		if raceenabled {
+			racenotify(c, c.recvx, nil)
+			racenotify(c, c.recvx, sg)
+		}
+		// copy data from queue to receiver
+		if ep != nil {
+			typedmemmove(c.elemtype, ep, qp)
+		}
+		// copy data from sender to queue
+		typedmemmove(c.elemtype, qp, sg.elem)
+		c.recvx++
+		if c.recvx == c.dataqsiz {
+			c.recvx = 0
+		}
+		c.sendx = c.recvx // c.sendx = (c.sendx+1) % c.dataqsiz
+	}
+	sg.elem = nil
+	gp := sg.g
+	unlockf()
+	gp.param = unsafe.Pointer(sg)
+	sg.success = true
+	if sg.releasetime != 0 {
+		sg.releasetime = cputicks()
+	}
+	goready(gp, skip+1)
+}
+```
+
+recv 在满 Channel 上处理接收操作，包括两部分：
+
+1. 发送方 sg 发送的值被放入 Channel，并且发送方被唤醒，来继续往后执行。
+2. 当前 G 的接收者将接收值写入 ep
+
+对于同步通道操作，这两个值时相同的。
+
+对于异步通道操作，接收方从通道缓冲区获取数据，发送方的数据放在通道缓冲区中。
+
+[runtime.recv](https://github.com/golang/go/blob/master/src/runtime/chan.go#L608) 函数做了两件事：
+
+1. 判断当前 Channel 的缓冲大小如果为 0，即不存在缓冲区，则直接通过 [runtime.recvDirect](https://github.com/golang/go/blob/181e8cde301cd8205489e746334174fee7290c9b/src/runtime/chan.go#L347) 直接从发送者接收消息；具体通过 `typeBitsBulkBarrier` 和 `memmove` 将发送者的数据拷贝到接收者内存地址中。
+2. 如果 Channel 存在缓冲区，那么就进而分两个部分：
+   1. 通过 `typedmemmove` 将队列中的数据拷贝至接收者内存中
+   2. 将发送队列头的数据拷贝到缓冲区中，并更新接收者的位置（同样，环形队列长度与接收位置索引相等，则表示从头开始）
+
+最后就会调用 [runtime.goready](https://github.com/golang/go/blob/master/src/runtime/proc.go#L375) 将当前发送者等待处理程序的 g 将状态从 waiting 状态变更为可运行状态；并入队列到当前处理器（_p_）的 run next（`_g_m.p.ptr().runnext`），等待下一轮调度器将阻塞的发送方唤醒。
+
+### 缓冲区
+
+如果 Channel 缓冲区中存在数据，接收数据操作会直接从 Channel 缓冲区提取 recvx 位置的数据进行后续处理：
+
+```go
+func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+	...
+	if c.qcount > 0 {
+		// Receive directly from queue
+		qp := chanbuf(c, c.recvx)
+		if raceenabled {
+			racenotify(c, c.recvx, nil)
+		}
+		if ep != nil {
+			typedmemmove(c.elemtype, ep, qp)
+		}
+		typedmemclr(c.elemtype, qp)
+		c.recvx++
+		if c.recvx == c.dataqsiz {
+			c.recvx = 0
+		}
+		c.qcount--
+		unlock(&c.lock)
+		return true, true
+	}
+	...
+}
+```
+
+最后就会调用 [runtime.typedmemclr](https://github.com/golang/go/blob/181e8cde301cd8205489e746334174fee7290c9b/src/runtime/mbarrier.go#L306) 清理队列中的数据类型，即更新计数器和索引以及释放 Channel 锁。
+
+接下来就是除去上面两种情况，必须要阻塞接收数据
+
+### 阻塞接收
+
+当 Channel 不存在等待的发送者队列处理程序，Channel 的缓冲区也不存在任何数据时，从 Channel 接收数据就会被阻塞；当然也可以通过 block 与 select 语句控制不阻塞：
+
+```go
+func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+  ...
+	if !block {
+		unlock(&c.lock)
+		return false, false
+	}
+	gp := getg()
+	mysg := acquireSudog()
+	mysg.releasetime = 0
+	if t0 != 0 {
+		mysg.releasetime = -1
+	}
+	mysg.elem = ep
+	mysg.waitlink = nil
+	gp.waiting = mysg
+	mysg.g = gp
+	mysg.isSelect = false
+	mysg.c = c
+	gp.param = nil
+	c.recvq.enqueue(mysg)
+	atomic.Store8(&gp.parkingOnChan, 1)
+	gopark(chanparkcommit, unsafe.Pointer(&c.lock), waitReasonChanReceive, traceEvGoBlockRecv, 2)
+  
+  if mysg != gp.waiting {
+		throw("G waiting list is corrupted")
+	}
+	gp.waiting = nil
+	gp.activeStackChans = false
+	if mysg.releasetime > 0 {
+		blockevent(mysg.releasetime-t0, 2)
+	}
+	success := mysg.success
+	gp.param = nil
+	mysg.c = nil
+	releaseSudog(mysg)
+	return true, success
+}
+```
+
+在没有任何发送者可用的情况下，创建新的 sudog，并将接收内存地址与当前 goroutine 的上下文保留，并将其插入接收者等待队列中去。入队列之后就会通知其它程序该 g 进入休眠状态，让出处理器的使用权并等待下次调度。
+
+最后进行一些清除扫尾工作，释放锁、内存等。
+
+### 总结
+
+发送数据分五种情况：
+
+1. 在一个空 Channel 接收数据时会直接调用 gopark 休眠让出处理器的使用权；
+2. 如果 Channel 已经关闭并且缓冲区不存在任何数据时，则会清除 ep 指针的数据并立即返回；
+3. 当检测到发送者等待队列中还有空闲的发送者（goroutine），如果不存在缓冲区就会直接从发送者接收消息。存在缓冲区就会将发送等待者的数据拷贝到缓冲区的 recvx 位置接收者的空间地址；
+4. 如果 Channel 缓冲区中存在数据，接收数据操作会直接从 Channel 缓冲区提取 recvx 位置的数据
+5. 一般情况会阻塞当前的 Goroutine，新建 sudog 结构压入接收着等待者队列中等待下次调度器唤醒。 
