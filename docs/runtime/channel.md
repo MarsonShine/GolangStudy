@@ -498,3 +498,77 @@ func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool)
 3. 当检测到发送者等待队列中还有空闲的发送者（goroutine），如果不存在缓冲区就会直接从发送者接收消息。存在缓冲区就会将发送等待者的数据拷贝到缓冲区的 recvx 位置接收者的空间地址；
 4. 如果 Channel 缓冲区中存在数据，接收数据操作会直接从 Channel 缓冲区提取 recvx 位置的数据
 5. 一般情况会阻塞当前的 Goroutine，新建 sudog 结构压入接收着等待者队列中等待下次调度器唤醒。 
+
+## 关闭 Channel
+
+关闭 Channel 是通过 [runtime.closechan](https://github.com/golang/go/blob/4847c47cb8a93b56e1df8c249700e25f527d4ba3/src/runtime/chan.go#L356) 实现的，主要逻辑就是清理那些还在队列里等待被唤醒的接收者与发送者。因为要更改 Channel 的属性以及队列里面的数据所以必须要加锁保证其它线程更改数据。
+
+在具体执行关闭操作之前，先上锁并设置了关闭标识字段 closed = 1；
+
+具体的关闭操作分为三部分：
+
+1. 释放 Channel 中所有等待唤醒的接收者 Goroutine
+2. 释放 Channel 中所有等待唤醒的发送者 Goroutine
+3. 将所有等待的 Goroutine 压入 glist 列表中，并将所有 Goroutine 状态变更为可运行状态放至到 runq 队列中的 runnext 等待下一次调度器调度执行。
+
+```go
+func closechan(c *hchan) {
+	...
+	lock(&c.lock)
+	if c.closed != 0 {
+		unlock(&c.lock)
+		panic(plainError("close of closed channel"))
+	}
+	...
+	c.closed = 1
+	var glist gList
+	// release all readers
+	for {
+		sg := c.recvq.dequeue()
+		if sg == nil {
+			break
+		}
+		if sg.elem != nil {
+			typedmemclr(c.elemtype, sg.elem)
+			sg.elem = nil
+		}
+		if sg.releasetime != 0 {
+			sg.releasetime = cputicks()
+		}
+		gp := sg.g
+		gp.param = unsafe.Pointer(sg)
+		sg.success = false
+		if raceenabled {
+			raceacquireg(gp, c.raceaddr())
+		}
+		glist.push(gp)
+	}
+
+	// release all writers (they will panic)
+	for {
+		sg := c.sendq.dequeue()
+		if sg == nil {
+			break
+		}
+		sg.elem = nil
+		if sg.releasetime != 0 {
+			sg.releasetime = cputicks()
+		}
+		gp := sg.g
+		gp.param = unsafe.Pointer(sg)
+		sg.success = false
+		if raceenabled {
+			raceacquireg(gp, c.raceaddr())
+		}
+		glist.push(gp)
+	}
+	unlock(&c.lock)
+
+	// Ready all Gs now that we've dropped the channel lock.
+	for !glist.empty() {
+		gp := glist.pop()
+		gp.schedlink = 0
+		goready(gp, 3)
+	}
+}
+```
