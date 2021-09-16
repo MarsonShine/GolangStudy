@@ -572,4 +572,3 @@ func closechan(c *hchan) {
 	}
 }
 ```
-
