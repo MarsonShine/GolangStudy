@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"sync/atomic"
 	"time"
 )
 
@@ -157,3 +159,84 @@ func worker(id int, jobs <-chan int, results chan<- int) {
 		results <- j * 2
 	}
 }
+
+// 通过channel实现共享内存
+// 通过协程和channel的同步实现这个特性，通信只能被单个协程拥有访问内存
+func shareCacheByChannel() {
+	var readOps uint64
+	var writeOps uint64
+
+	reads := make(chan readOp)
+	writes := make(chan writeOp)
+
+	go func() {
+		// state 在channel通道内设置
+		// 所以只有单独的协程才能访问
+		var state = make(map[int]int)
+		// 这个协程不断地在 reads 和 writes 通道上进行选择，并在请求到达时做出响应。
+		// 首先，执行请求的操作；然后，执行响应，在响应通道 resp 上发送一个值，表明请求成功（reads 的值则为 state 对应的值）。
+		for {
+			select {
+			case read := <-reads:
+				read.resp <- state[read.key]
+			case write := <-writes:
+				state[write.key] = write.val
+				write.resp <- true
+			}
+		}
+	}()
+	// 模拟100个线程并发读操作
+	for i := 0; i < 100; i++ {
+		go func() {
+			for {
+				read := readOp{
+					key:  rand.Intn(5),
+					resp: make(chan int),
+				}
+				reads <- read
+				<-read.resp
+				atomic.AddUint64(&readOps, 1)
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+	// 模拟10个线程并发写操作
+	for i := 0; i < 10; i++ {
+		go func() {
+			for {
+				write := writeOp{
+					key:  rand.Intn(5),
+					val:  rand.Intn(1000),
+					resp: make(chan bool),
+				}
+				writes <- write
+				<-write.resp
+				atomic.AddUint64(&writeOps, 1)
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+	time.Sleep(time.Second)
+
+	readOpsFinal := atomic.LoadUint64(&readOps)
+	fmt.Println("readOps:", readOpsFinal)
+	writeOpsFinal := atomic.LoadUint64(&writeOps)
+	fmt.Println("writeOps:", writeOpsFinal)
+}
+
+// 在上面的 shareCacheByChannel 例子中
+// state 将被一个单独的协程拥有。 这能保证数据在并行读取时不会混乱。
+// 为了对 state 进行读取或者写入， 其它的协程将发送一条数据到目前拥有数据的协程中， 然后等待接收对应的回复。
+// 结构体 readOp 和 writeOp 封装了这些请求，并提供了响应协程的方法。
+type (
+	readOp struct {
+		key  int
+		resp chan int
+	}
+
+	writeOp struct {
+		key  int
+		val  int
+		resp chan bool
+	}
+)
