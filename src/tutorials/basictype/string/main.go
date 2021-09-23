@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	s "strings"
 	"unicode/utf8"
 )
 
@@ -59,6 +60,8 @@ func main() {
 	fmt.Printf("%x\n", sample)
 	// 方式三：用转义符输出
 	fmt.Printf("%q\n", sample)
+
+	normalFunction()
 }
 
 func convert() {
@@ -86,4 +89,26 @@ func intsToString(values []int) string {
 	}
 	buf.WriteByte(']')
 	return buf.String()
+}
+
+// 重命名函数
+var p = fmt.Println
+
+// 字符串常用的函数操作
+func normalFunction() {
+	p("在指定字符串查找子串是否存在；Contains: ", s.Contains("test", "es"))
+	p("在指定字符串统计子串的出现次数；Count: ", s.Count("test", "t"))
+	p("在指定字符串查找指定前缀子串；HasPrefix: ", s.HasPrefix("test", "te"))
+	p("在指定字符串查找指定尾缀子串；HasSuffix: ", s.HasSuffix("test", "st"))
+	p("查找给定子串的索引；Index:     ", s.Index("test", "e"))
+	p("将目标数组用指定分隔符连接；Join:      ", s.Join([]string{"a", "b"}, "-"))
+	p("将给定子串重复指定次数；Repeat:    ", s.Repeat("a", 5))
+	p("替换；Replace:   ", s.Replace("foo", "o", "0", -1))
+	p("Replace:   ", s.Replace("foo", "o", "0", 1))
+	p("Split:     ", s.Split("a-b-c-d-e", "-"))
+	p("ToLower:   ", s.ToLower("TEST"))
+	p("ToUpper:   ", s.ToUpper("test"))
+	p()
+	p("Len: ", len("hello"))
+	p("Char: ", "hello"[1])
 }
