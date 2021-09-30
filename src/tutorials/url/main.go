@@ -25,10 +25,10 @@ func main() {
 	fmt.Println(host)
 	fmt.Println(port)
 
-	fmt.Println(u.Path)
-	fmt.Println(u.Fragment)
+	fmt.Println("RawQeury:", u.Path)
+	fmt.Println("RawQeury:", u.Fragment)
 
-	fmt.Println(u.RawQuery)
+	fmt.Println("RawQeury:", u.RawQuery)
 	m, _ := url.ParseQuery(u.RawQuery)
 	fmt.Println(m)
 	fmt.Println(m["k"][0])
