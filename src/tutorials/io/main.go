@@ -11,6 +11,7 @@ import (
 
 func main() {
 	readfile()
+	writefile()
 }
 
 func readfile() {
@@ -56,6 +57,36 @@ func readfile() {
 
 	// 关闭
 	f.Close()
+
+}
+
+func writefile() {
+	d1 := []byte("hello\ngo\n")
+	path, _ := filepath.Abs("./tmp/dat1")
+	err := ioutil.WriteFile(path, d1, 0644)
+	check(err)
+
+	path, _ = filepath.Abs("./tmp/dat2")
+	f, err := os.Create(path)
+	check(err)
+	defer f.Close()
+
+	d2 := []byte{115, 111, 109, 101, 10}
+	n2, err := f.Write(d2)
+	check(err)
+	fmt.Printf("wrote %d bytes \n", n2)
+
+	n3, err := f.WriteString("writes\n")
+	fmt.Printf("wrote %d bytes\n", n3)
+
+	// 调用 Sync 将缓冲区的数据写入硬盘。
+	f.Sync()
+
+	w := bufio.NewWriter(f)
+	n4, err := w.WriteString("buffered\n")
+	fmt.Printf("wrote %d bytes\n", n4)
+	// 使用 Flush 来确保，已将所有的缓冲操作应用于底层 writer。
+	w.Flush()
 
 }
 
