@@ -107,3 +107,7 @@ arena map 覆盖了整个可能的地址空间，允许 Go 堆使用地址空间
 ### bitmap
 
 ### arena
+
+# 相关拓展阅读
+
+https://www.ardanlabs.com/blog/2018/12/garbage-collection-in-go-part1-semantics.html
