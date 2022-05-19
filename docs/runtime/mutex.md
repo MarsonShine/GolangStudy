@@ -41,12 +41,12 @@ func (m *Mutex) Lock() {
 
 m.lockSlow 代码很复杂，里面有一些比较的变量为了方便理解，我标记起来：
 
-```
+```go
 func (m *Mutex) lockSlow() {
-		var waitStartTime int64
-    starving := false
-    awoke := false
-    iter := 0
+	var waitStartTime int64
+    starving := false	// goruotine饥饿标识
+    awoke := false	// 唤醒标记
+    iter := 0	// 自旋的次数
     ...
 }
 ```
@@ -60,7 +60,8 @@ func (m *Mutex) lockSlow() {
 
 ```go
 // lockSlow
-for {
+for { // 无论是新协程还是老协程都在循环获取锁
+    	// 锁是普通状态，锁还没有被释放，则自旋
 		if old&(mutexLocked|mutexStarving) == mutexLocked && runtime_canSpin(iter) {
 			if !awoke && old&mutexWoken == 0 && old>>mutexWaiterShift != 0 &&
 				atomic.CompareAndSwapInt32(&m.state, old, old|mutexWoken) {
@@ -68,7 +69,7 @@ for {
 			}
 			runtime_doSpin()
 			iter++
-			old = m.state
+			old = m.state	// 再次获取锁的状态，如此每次都要检查锁的状态
 			continue
 		}
   	...
@@ -81,24 +82,29 @@ for {
 
 ```go
 // lockSlow
-if atomic.CompareAndSwapInt32(&m.state, old, new) {
+if atomic.CompareAndSwapInt32(&m.state, old, new) {	// 成功设置锁的新状态
+    // 原来的锁已经释放，并且不是饥饿状态，正常请求锁并返回
     if old&(mutexLocked|mutexStarving) == 0 {
       break // locked the mutex with CAS
     }
-    // If we were already waiting before, queue at the front of the queue.
+    // 往下开始处理饥饿状态
+    // 如果以前就在队列里面，则加入到队列头
     queueLifo := waitStartTime != 0
     if waitStartTime == 0 {
       waitStartTime = runtime_nanotime()
     }
+    // 阻塞等待
     runtime_SemacquireMutex(&m.sema, queueLifo, 1)
+    // 唤醒之后检查锁是否处于饥饿状态
     starving = starving || runtime_nanotime()-waitStartTime > starvationThresholdNs
     old = m.state
+    // 如果处于饥饿状态，直接占有锁，返回
     if old&mutexStarving != 0 {
       if old&(mutexLocked|mutexWoken) != 0 || old>>mutexWaiterShift == 0 {
         throw("sync: inconsistent mutex state")
       }
       delta := int32(mutexLocked - 1<<mutexWaiterShift)
-      if !starving || old>>mutexWaiterShift == 1 {
+      if !starving || old>>mutexWaiterShift == 1 { // 最后一个waiter或者是已经不饥饿了，则清除饥饿标记
         delta -= mutexStarving
       }
       atomic.AddInt32(&m.state, delta)
