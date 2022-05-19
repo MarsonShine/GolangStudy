@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-cip/mutex/concurrency"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -11,6 +12,9 @@ func main() {
 	counter() // 非并发安全，每次运行结果不一样
 	counter_safe()
 	counter_concurrency()
+
+	// trylock 多个协程非阻塞
+	tryLock()
 }
 
 func counter() {
@@ -62,6 +66,26 @@ func counter_concurrency() {
 	}
 	wg.Wait()
 	fmt.Println(counter.Count())
+}
+
+func tryLock() {
+	var mu sync.Mutex
+	go func() {
+		mu.Lock()
+		time.Sleep(3 * time.Second)
+		mu.Unlock()
+	}()
+
+	time.Sleep(time.Second)
+	ok := mu.TryLock()
+	if ok {
+		fmt.Println("got the lock")
+		// do something
+		mu.Unlock()
+		return
+	}
+	// 没有获取到
+	fmt.Println("can't get the lock")
 }
 
 // doc:
