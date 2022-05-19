@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"go-cip/mutex/concurrency"
+	"go-cip/01-mutex/concurrency"
 	"sync"
 	"time"
 )
