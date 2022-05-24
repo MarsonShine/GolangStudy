@@ -41,6 +41,29 @@ func (q *LKQueue) Enqueue(v interface{}) {
 	}
 }
 
+func (q *LKQueue) Dequeue() interface{} {
+	for {
+		head := load(&q.head)
+		tail := load(&q.tail)
+		next := load(&head.next)
+		if head == load(&q.head) {
+			if head == tail { // 满元素或空元素
+				if next == nil {
+					return nil
+				}
+			}
+			cas(&q.tail, tail, next)
+		} else {
+			// 读取出队数据
+			v := next.value
+			// 头指针往后移
+			if cas(&q.head, head, next) {
+				return v
+			}
+		}
+	}
+}
+
 // 将unsafe.Pointer原子加载转换成node
 func load(p *unsafe.Pointer) (n *node) {
 	return (*node)(atomic.LoadPointer(p))
