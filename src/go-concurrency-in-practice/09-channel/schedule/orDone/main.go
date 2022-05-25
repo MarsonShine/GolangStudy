@@ -6,17 +6,17 @@ import (
 	"time"
 )
 
-// channel 编排模式之orDone
+// channel 编排模式之orDone：只要任意一个任务执行完，就返回；
 // 信号通知模式
 func main() {
 	start := time.Now()
 	<-orWithoutRecurison(
-		sig(10*time.Second),
-		sig(20*time.Second),
-		sig(30*time.Second),
-		sig(40*time.Second),
-		sig(50*time.Second),
-		sig(01*time.Minute),
+		sig(10 * time.Second),
+		// sig(20*time.Second),
+		// sig(30*time.Second),
+		// sig(40*time.Second),
+		// sig(50*time.Second),
+		// sig(01*time.Minute),
 	)
 	// 执行到这里，说明orDone已经被close掉了
 	fmt.Printf("done after %v", time.Since(start))
@@ -50,17 +50,6 @@ func or(channels ...<-chan interface{}) <-chan interface{} {
 			case <-or(channels[m:]...):
 			}
 		}
-
-		// 利用反射
-		var cases []reflect.SelectCase
-		for _, c := range channels {
-			cases = append(cases, reflect.SelectCase{
-				Dir:  reflect.SelectRecv,
-				Chan: reflect.ValueOf(c),
-			})
-		}
-		// 随机选择一个可用的case
-		reflect.Select(cases)
 	}()
 	return orDone
 }

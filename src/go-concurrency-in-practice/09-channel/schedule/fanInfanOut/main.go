@@ -20,7 +20,6 @@ func main() {
 		sig(50*time.Second),
 		sig(01*time.Minute),
 	)
-	// 执行到这里，说明orDone已经被close掉了
 	fmt.Printf("done after %v", time.Since(start))
 }
 
