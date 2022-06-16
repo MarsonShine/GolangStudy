@@ -63,3 +63,11 @@ func SumOfNumber[K comparable, V TNumber](m map[K]V) V {
 	}
 	return s
 }
+
+type TFunc interface {
+	func() | func(...interface{})
+}
+
+func GenericFunc[T TFunc](a T) T {
+	return a
+}
