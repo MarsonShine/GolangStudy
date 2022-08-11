@@ -34,4 +34,22 @@ func main() {
 		ints.Delete(i)
 		fmt.Println(ints)
 	}
+
+	ints2 := undo.NewUndoableIntSet()
+	for _, i := range []int{1, 3, 5, 7} {
+		ints2.Add(i)
+		fmt.Println(ints2)
+	}
+	for _, i := range []int{1, 2, 3, 4, 5, 6, 7} {
+		fmt.Println(i, ints2.Contains(i), " ")
+		ints2.Delete(i)
+		fmt.Println(ints2)
+	}
+	fmt.Println()
+	for {
+		if err := ints2.Undo(); err != nil {
+			break
+		}
+		fmt.Println(ints2)
+	}
 }
