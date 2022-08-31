@@ -98,6 +98,14 @@ func (x StringSlice) Less(i, j int) bool { return x[i] < x[j] }
 
 谁知道传入的索引值是多少呢！此外，由于动态调度，这个函数没有内联它的调用者，编译器可能对正在发生的事情有更深入的了解。Go 编译器具有一些去虚拟化(devurtualization capabilities)的功能，但它们并没有在这里发挥作用。这是编译器改进的另一个有趣领域。
 
+> BCE（Bounds Check Elimination）消除边界检查：
+>
+> 在数组/切片元素操作中，程序会检查所有涉及的索引是否超出范围。如果超出范围就会引起程序崩溃，于是通过边界检查来消除这种破坏。这就是边界检查。
+>
+> 这种检查能使程序运行得更安全，但是性能也会有所损失。
+>
+> 从Go Toolchain 1.7开始，标准的Go编译器使用了一个新的编译器后端，它基于SSA(静态单赋值形式)。SSA帮助Go编译器有效地使用像[BCE(边界检查消除)](https://en.wikipedia.org/wiki/Bounds-checking_elimination)和[CSE(公共子表达式消除)](https://en.wikipedia.org/wiki/Common_subexpression_elimination)这样的优化。BCE可以避免一些不必要的边界检查，CSE可以避免一些重复的计算，使标准的Go编译器可以生成更高效的程序。有时这些优化的改进效果是明显的。
+
 ## 泛型排序与自定义排序委托
 
 为了验证前面描述的一些观察结果，这一次，不依赖`constraints.Ordered`，但使用比较函数代替：
@@ -224,7 +232,86 @@ GenericWithPtr-16         7.18µs ± 2%  2.59kB ± 0%  3.00 ± 0%
 
 ​														（上结果引自作者）
 
-// TODO
+这个简单的基准测试使用3个略有不同的实现来测试相同的函数体。`GenericWithPointer` 将 `strings.Builder` 传递给 `func Escape[W io.ByteWriter](W, []byte)` 泛型函数。`Iface` 的基准测试是直接采用接口的 `func Escape(io.ByteWriter, []byte)`。`Monomorphized` 用于手动单态化的 `func Escape(*strings.Builder, []byte)`。
+
+结果不令人意外。专门用于直接获取 `strings.Builder` 的函数是最快的，因为它允许编译器在其中**内联** `WriteByte` 调用。泛型函数比以 `io.ByteWriter` 接口作为参数的最简单实现慢得多。我们可以看到，来自泛型字典的额外负载的影响并不显着，因为在这个微基准测试中，`itab` 和泛型字典在缓存中都会非常温暖（swarm）（但是，请继续阅读以分析缓存争用如何影响泛型代码）。
+
+这是我们可以从该分析中收集到的第一个见解：**在 1.18 中没有动力将带有接口的纯函数转换为使用泛型。它只会让它变慢，因为 Go 编译器目前无法生成通过指针调用方法的函数shape。相反，它将引入具有两层间接的接口调用。这与我们想要的方向完全相反，即去虚拟化，并在可能的情况下进行内联。**
+
+在结束本节之前，让我们指出 Go 编译器逃逸分析中的一个细节：我们可以看到我们的单态化函数在我们的基准测试中有 2 个 allocs/op。这是因为我们传递了一个指向位于堆栈中的 `strings.Builder` 的指针，编译器可以证明它没有逃逸，因此不需要堆分配。即使我们还从堆栈中传递了一个指针，Iface 基准测试也显示了 3 个 allocs/op。这是因为我们将指针移动到接口，并且总是分配。令人惊讶的是，GenericWithPointer 实现还显示了 3 个 allocs/op。即使为函数生成的实例化直接采用指针，转义分析也不能再证明它是非转义的，因此我们获得了额外的堆分配。
+
+## 泛型接口调用
+
+如果我们将 `strings.Builder` 隐藏在接口后面会发生什么？
+
+```go
+var buf strings.Builder
+var i io.ByteWriter = &buf
+BufEncodeStringSQL(i, []byte(nil))
+```
+
+泛型函数的参数现在是一个接口，而不是指针。这个调用显然是有效的，因为我们传递的接口与方法上的约束是相同的。但是我们生成的实例化shape是什么样的呢？我们没有嵌入完整的反汇编，因为它会产生混乱，但就像我们之前做的一样，让我们分析函数中`WriteByte`方法的调用点:
+
+```assembly
+00b6  LEAQ type.io.ByteWriter(SB), AX
+00bd  MOVQ ""..autotmp_8+40(SP), BX
+00c2  CALL runtime.assertI2I(SB)
+00c7  MOVQ 24(AX), CX
+00cb  MOVQ "".buf+80(SP), AX
+00d0  MOVL $92, BX
+00d5  CALL CX
+```
+
+变化很大，这与我们之前生成的代码相比，差距很大。
+
+这发生了什么？我们可以在 Go 运行时中找到 [runtime.assertI2I](https://github.com/golang/go/blob/c6d9b38dd82fea8775f1dff9a4a70a017463035d/src/runtime/iface.go#L421-L430) 方法：这是一个断言接口之间转换的帮助方法。它接受一个 `*interfacetype` 和一个 `*itab` 作为它的两个参数，并且仅当给定 `itab` 中的接口也实现了我们的目标接口时才返回给定 `interfacetype` 的 `itab`。
+
+假设有这样一个接口：
+
+```go
+type IBuffer interface {
+	Write([]byte) (int, error)
+	WriteByte(c byte) error
+	Len() int
+	Cap() int
+}
+```
+
+这个接口没有提到`io.ByteWriter`和`io.Writer`，然而任何实现`IBuffer`的类型也隐士的实现了这两个接口。这对我们泛型函数生成的代码会有影响：因为我们对函数的泛型约束是`io.ByteWriter`，我们可以任何一个实现了`io.ByteWriter`的接口参数——当然这也包括了`IBuffer`。但是我们需要在参数上调用`WriteByte`方法时，该方法在我们收到的接口`itab.fun`数组中的哪个位置存在？我们并不知道！如果我们传递的是`*strings.Builder`作为`io.ByteWriter`接口参数，那么这个方法就会在该接口（指strings.Builder）的 `itab`将在`func[0]`的位置。如果我们传递的是`IBuffer`，它就会在`func[1]`中。我们需要一个帮助类，它可以将 `itab` 用作 `IBuffer`，并返回一个 `io.ByteWriter` 的 `itab`，其中我们的 `WriteByte` 函数指针始终稳定在 fun[0]。
+
+这是`assertI2I`的工作，也是函数中的每个调用站点所做的。让我们一步一步来分析。
+
+```assembly
+00b6  LEAQ type.io.ByteWriter(SB), AX
+00bd  MOVQ ""..autotmp_8+40(SP), BX
+00c2  CALL runtime.assertI2I(SB)
+00c7  MOVQ 24(AX), CX
+00cb  MOVQ "".buf+80(SP), AX
+00d0  MOVL $92, BX
+00d5  CALL CX
+```
+
+首先，**它将 io.ByteWriter 的接口类型（这是一个硬编码的全局，因为这是我们的约束中定义的接口类型）加载到寄存器 `AX`。然后，它将我们传递给函数的接口的实际`itab`加载到`BX`中**。这就是函数`assertI2I`需要的两个参数，在调用它之后剩下的就是在`AX`中的`io.ByteWriter`的`itab`，我们可以继续我们的接口函数调用，就像我们在之前的代码生成中所做的那样，知道我们的函数指针现在总是在`itab`中偏移24。本质上，这个shape实例化所做的就是将每个方法调用从`buf.WriteByte(ch)`转换为`buf.(io.ByteWriter). writebyte(ch)`。
+
+## 字节序列
+
+翻看go源码的可以直到，以`[]byte`切片作为参数有大量重复的代码（如`(*Buffer).Write`和`(*Buffer).WriteString`）,其中以`encoding/utf8`这个包中的代码有超过50%的API代码都是重复的
+
+| Bytes            | String                   |
+| ---------------- | ------------------------ |
+| `DecodeLastRune` | `DecodeLastRuneInString` |
+| `DecodeRune`     | `DecodeRuneInString`     |
+| `FullRune`       | `FullRuneInString`       |
+| `RuneCount`      | `RuneCountInString`      |
+| `Valid`          | `ValidString`            |
+
+需要指出的是，这种代码重复实际上是一种性能优化：API可以很好的只提供它想要的`[]byte`切片数据，这样就会迫使用户在调用包之前必须转换为`[]byte`，并且它们的互相转换会额外强制分配内存。
+
+所以对于重复的代码来看，使用泛型是一个很好的目标，但是由于代码重复首先是为了防止额外的分配，所以在实现泛型统一之前，必须要明确生成的shape实例的行为是符合预期的。
+
+> 当利用泛型优化时，我们可以通过查看汇编代码，看生成的指令是否有很大差别
+
+具体的例子给查看末尾给的原文
 
 ## 结论（1.18泛型最佳实践建议）
 
