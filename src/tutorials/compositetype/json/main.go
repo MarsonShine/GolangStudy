@@ -15,7 +15,7 @@ type Movie struct {
 	Actors []string
 }
 
-func main() {
+func main1() {
 	var movies = []Movie{
 		{Title: "Casablanca", Year: 1942, Color: false,
 			Actors: []string{"Humphrey Bogart", "Ingrid Bergman"}},
