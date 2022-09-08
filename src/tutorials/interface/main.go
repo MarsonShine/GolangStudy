@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"reflect"
 )
 
 //因为在Go语言中只有当两个或更多的类型实现一个接口时才使用接口，它们必定会从任意特定的实现细节中抽象出来。结果就是有更少和更简单方法的更小的接口
@@ -58,3 +59,21 @@ func (s *Square) Area() int {
 
 // 这里没有对 Shape 接口的所有方法进行实现，所以我们要通过如下方式对接口实现进行完整性检查
 var _ Shape = (*Square)(nil)
+
+type Munger interface {
+	Munge(int)
+}
+type Foo struct{}
+
+// 接口与类型之间的转换
+func typeConvert() {
+	var f Foo
+	// _, ok := f.(Munger) // 转换错误，f必须要是接口类型
+
+	// 可以先转换成空接口，然后在转成目标接口类型
+	_, ok := interface{}(f).(Munger)
+
+	// 也可以通过反射进行类型断言
+	iMunger := reflect.TypeOf((*Munger)(nil)).Elem()
+	ok = reflect.TypeOf(&f).Implements(iMunger)
+}
