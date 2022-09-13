@@ -39,6 +39,19 @@ rafe有两种类别的rpc请求：
 1. 将状态转换为candidate，并将当前任期数自增（表示新一轮投票）
 2. 发送RV给所有的peers节点，并请求为自己投票
 3. 等待这些RPC的响应，并统计投票数，如果数量足够了就变成leader
+
+成为leader后，需要向其它节点同步信息，发送RPC请求
+
+状态转移和协程
+总结一下cm状态的转移过程和对应转移所处的goroutine：
+Follower：CM被初始化为一个follower，每次调用becomeFollower时都会新起goroutine运行runElectionTimer。注意，在短时间内允许有多个同时运行。假设一个follower从更高任期的leader接收到一个RV，就会触发becomeFollower调用，就会启动新的goroutine定时器。但是旧的routine计时器会因为任期不是最新从而退出。
+
+Candidate：候选人也有并行的选举goroutine，但除此之外，它还有许多goroutine来发送rpc。它同样也有follower那样的机制，根据任期大小来停止旧的选举。请记住，RPC goroutines可能需要很长的时间才能完成，所以如果它们发现在RPC调用返回时已经过期，就必须安静地退出。
+
+Leader：leader 不会发出选举goroutine，但是会以每50毫秒来发送心跳
+
+非正常选举场景
+
 */
 
 type ConsensusModule struct {
@@ -55,6 +68,15 @@ type ConsensusModule struct {
 
 	state              CMStatus
 	electionResetEvent time.Time
+}
+
+type AppendEntriesArgs struct {
+	Term     int
+	LeaderId int
+}
+type AppendEntriesReply struct {
+	Term    int
+	Success bool
 }
 
 type LogEntry struct {
@@ -207,6 +229,113 @@ func (cm *ConsensusModule) becomeFollower(term int) {
 	go cm.runElectionTimer()
 }
 
+/*
+赢得大多数节点的选票即可称为leader
+每50ms发送一个心跳请求
+*/
 func (cm *ConsensusModule) startLeader() {
+	cm.state = Leader
+	cm.dlog("becomes Leader; term=%d, log=%v", cm.currentTerm, cm.log)
 
+	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+		// 作为leader，需要一直发送心跳
+		for {
+			cm.leaderSendHeartbeats()
+			<-ticker.C
+
+			cm.mu.Lock()
+			if cm.state != Leader {
+				cm.mu.Unlock()
+				return
+			}
+			cm.mu.Unlock()
+		}
+	}()
+}
+
+func (cm *ConsensusModule) leaderSendHeartbeats() {
+	cm.mu.Lock()
+	savedCurrentTerm := cm.currentTerm
+	cm.mu.Unlock()
+
+	for _, peerId := range cm.peerIds {
+		args := AppendEntriesArgs{
+			Term:     savedCurrentTerm,
+			LeaderId: cm.id,
+		}
+
+		go func(peerId int) {
+			cm.dlog("sending AppendEntries to %v: ni=%d, args=%+v", peerId, 0, args)
+			var reply AppendEntriesReply
+			if err := cm.server.Call(peerId, "ConsensusModule.AppendEntries", args, &reply); err != nil {
+				cm.mu.Lock()
+				defer cm.mu.Unlock()
+				if reply.Term > savedCurrentTerm {
+					cm.dlog("term out of date in heartbeat reply")
+					cm.becomeFollower(reply.Term)
+					return
+				}
+			}
+		}(peerId)
+	}
+}
+
+func (cm *ConsensusModule) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if cm.state == Dead {
+		return nil
+	}
+	cm.dlog("RequestVote: %+v [currentTerm=%d, votedFor=%d]", args, cm.currentTerm, cm.votedFor)
+
+	if args.Term > cm.currentTerm {
+		// 请求参数的任期比该cm大，说明该投票已过期
+		cm.dlog("... term out of date in RequestVote")
+		cm.becomeFollower(args.Term)
+	}
+	// 调用者的任期和请求投票的任期一致并且该调用者还没有投票给其它节点请求，则投票成功
+	if cm.currentTerm == args.Term && (cm.votedFor == -1 || cm.votedFor == args.CandidateId) {
+		reply.VoteGranted = true
+		cm.votedFor = args.CandidateId
+		cm.electionResetEvent = time.Now()
+	} else {
+		reply.VoteGranted = false
+	}
+	reply.Term = cm.currentTerm
+	cm.dlog("... RequestVote reply: %+v", reply)
+	return nil
+
+}
+
+func (cm *ConsensusModule) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if cm.state == Dead {
+		return nil
+	}
+	cm.dlog("AppendEntries: %+v", args)
+
+	if args.Term > cm.currentTerm {
+		cm.dlog("... term out of date in AppendEntries")
+		cm.becomeFollower(args.Term)
+	}
+
+	reply.Success = false
+	/*
+		这里在什么情况下会存在一个leader(该cm)节点会成为另一个leader的follower节点？
+		Raft保证在任何给定的任期内只存在一个领导者。如果您仔细地遵循RequestVote的逻辑和startElection中发送rv的代码，您将看到集群中不可能在同一任期内存在两个leader。这个条件对于发现另一个同伴在这届选举中获胜的候选人来说是很重要的。
+		这里应该指的是短时间leader失去连接，导致脑裂，从而出现的问题
+	*/
+	if args.Term == cm.currentTerm {
+		if cm.state != Follower {
+			cm.becomeFollower(args.Term)
+		}
+		cm.electionResetEvent = time.Now()
+		reply.Success = true
+	}
+	reply.Term = cm.currentTerm
+	cm.dlog("AppendEntries reply: %+v", *reply)
+	return nil
 }
