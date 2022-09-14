@@ -50,6 +50,13 @@ Candidate：候选人也有并行的选举goroutine，但除此之外，它还�
 
 Leader：leader 不会发出选举goroutine，但是会以每50毫秒来发送心跳
 
+
+客户端交互部分
+客户端是如何发现leader？
+客户端会通过raft来复制一连串的command，这些命令作为通用状态机的输入，这些命令一般会经过如下阶段：
+1. 命令由客户端提交给leader。在raft对等体集群中，一个命令通常只提交给一个对等体（peer）
+2. leader复制这个命令给其它followers
+3. 一旦leader对命令被充分复制了即满足提交条件了（即大多数集群对等体在日志中都记录这个命令），这个命令就被提交并并通知到其它客户端有新提交。
 */
 
 type ConsensusModule struct {
@@ -59,18 +66,37 @@ type ConsensusModule struct {
 
 	server *Server // 包含CM的服务器，用于发出RPC调用
 
+	// 用于报告已提交的日志条目的通道，由客户端构建的过程中传入的
+	commitChan chan<- CommitEntry
+
+	// newCommitReadyChan是一个内部通知通道，由向日志提交新条目的goroutine使用，以通知这些条目可以在commitChan上发送。
+	newCommitReadyChan chan struct{}
+
 	// 需要持久化的信息
 	currentTerm int // 在所有服务器上持有的Raft状态
 	votedFor    int
 	log         []LogEntry
 
+	// 所有节点服务器的易失性状态
+	commitIndex        int
+	lastApplied        int
 	state              CMStatus
 	electionResetEvent time.Time
+
+	// leader的易失性状态
+	nextIndex  map[int]int
+	matchIndex map[int]int
 }
 
+// raft 论文中的图2介绍了日志结构
 type AppendEntriesArgs struct {
 	Term     int
 	LeaderId int
+
+	PrevLogIndex int
+	PrevLogTerm  int
+	Entries      []LogEntry
+	LeaderCommit int
 }
 type AppendEntriesReply struct {
 	Term    int
@@ -101,6 +127,13 @@ type RequestVoteArgs struct {
 type RequestVoteReply struct {
 	Term        int
 	VoteGranted bool
+}
+
+// 要提交得条目，每个提交条目都会通知客户端，在提交得命名上达成共识，最终应用到客户端上。
+type CommitEntry struct {
+	Command interface{}
+	Index   int
+	Term    int
 }
 
 /*
@@ -259,21 +292,66 @@ func (cm *ConsensusModule) leaderSendHeartbeats() {
 	cm.mu.Unlock()
 
 	for _, peerId := range cm.peerIds {
-		args := AppendEntriesArgs{
-			Term:     savedCurrentTerm,
-			LeaderId: cm.id,
-		}
-
 		go func(peerId int) {
-			cm.dlog("sending AppendEntries to %v: ni=%d, args=%+v", peerId, 0, args)
+			cm.mu.Lock()
+			ni := cm.nextIndex[peerId]
+			prevLogIndex := ni - 1
+			prevLogTerm := -1
+			if prevLogIndex >= 0 {
+				prevLogTerm = cm.log[prevLogIndex].Term
+			}
+			entries := cm.log[ni:]
+
+			args := AppendEntriesArgs{
+				Term:         savedCurrentTerm,
+				LeaderId:     cm.id,
+				PrevLogIndex: prevLogIndex,
+				PrevLogTerm:  prevLogTerm,
+				Entries:      entries,
+				LeaderCommit: cm.commitIndex,
+			}
+			cm.mu.Unlock()
+			cm.dlog("sending AppendEntries to %v: ni=%d, args=%+v", peerId, ni, args)
+			// AE响应有一个success字段，告诉leader follower是否看到了prevLogIndex和prevLogTerm的匹配。基于这个字段，leader为这个follower更新nextIndex。
 			var reply AppendEntriesReply
-			if err := cm.server.Call(peerId, "ConsensusModule.AppendEntries", args, &reply); err != nil {
+			if err := cm.server.Call(peerId, "ConsensusModule.AppendEntries", args, &reply); err == nil {
 				cm.mu.Lock()
 				defer cm.mu.Unlock()
 				if reply.Term > savedCurrentTerm {
 					cm.dlog("term out of date in heartbeat reply")
 					cm.becomeFollower(reply.Term)
 					return
+				}
+
+				if cm.state == Leader && savedCurrentTerm == reply.Term {
+					if reply.Success {
+						cm.nextIndex[peerId] = ni + len(entries)
+						cm.matchIndex[peerId] = cm.nextIndex[peerId] - 1
+						cm.dlog("AppendEntries reply from %d success: nextIndex := %v, matchIndex := %v", peerId, cm.nextIndex, cm.matchIndex)
+
+						savedCommitIndex := cm.commitIndex
+						for i := cm.commitIndex; i < len(cm.log); i++ {
+							if cm.log[i].Term == cm.currentTerm {
+								matchCount := 1
+								for _, peerId := range cm.peerIds {
+									if cm.matchIndex[peerId] >= i {
+										matchCount++
+									}
+								}
+								// commitIndex只有在大多数follower复制成功日志索引，才会更新为这个索引位置
+								if matchCount*2 > len(cm.peerIds)+1 {
+									cm.commitIndex = i
+								}
+							}
+						}
+						if cm.commitIndex != savedCommitIndex {
+							cm.dlog("leader sets commitIndex := %d", cm.commitIndex)
+							cm.newCommitReadyChan <- struct{}{}
+						}
+					} else {
+						cm.nextIndex[peerId] = ni - 1
+						cm.dlog("AppendEntries reply from %d !success: nextIndex := %d", peerId, ni-1)
+					}
 				}
 			}
 		}(peerId)
@@ -336,4 +414,43 @@ func (cm *ConsensusModule) AppendEntries(args AppendEntriesArgs, reply *AppendEn
 	reply.Term = cm.currentTerm
 	cm.dlog("AppendEntries reply: %+v", *reply)
 	return nil
+}
+
+func (cm *ConsensusModule) Submit(command interface{}) bool {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	cm.dlog("Submit received by %v: %v", cm.state, command)
+	if cm.state == Leader {
+		cm.log = append(cm.log, LogEntry{Command: command, Term: cm.currentTerm})
+		cm.dlog("... log=%v", cm.log)
+		return true
+	}
+	return false
+}
+
+// 该方法在goroutine启动时就会运行
+// 该方法更新lastApplied状态变量，以了解哪些条目已经发送到客户端，并只发送新的条目。
+func (cm *ConsensusModule) commitChanSender() {
+	for range cm.newCommitReadyChan {
+		cm.mu.Lock()
+		savedTerm := cm.currentTerm
+		savedLastApplied := cm.lastApplied
+		var entries []LogEntry
+		if cm.commitIndex > cm.lastApplied {
+			entries = cm.log[cm.lastApplied+1 : cm.commitIndex]
+			cm.lastApplied = cm.commitIndex
+		}
+		cm.mu.Unlock()
+		cm.dlog("commitChanSender entries=%v, savedLastApplied=%d", entries, savedLastApplied)
+
+		for i, entry := range entries {
+			cm.commitChan <- CommitEntry{
+				Command: entry.Command,
+				Index:   savedLastApplied + i + 1,
+				Term:    savedTerm,
+			}
+		}
+	}
+	cm.dlog("commiteChanSender done")
 }
