@@ -10,6 +10,8 @@ import (
 )
 
 /*
+raft 论文地址：https://raft.github.io/raft.pdf
+
 共识算法（Consensus Module）是raft算法的核心；它完全抽象了与集群中其他副本的网络和连接的细节
 
 概念介绍：
@@ -385,6 +387,18 @@ func (cm *ConsensusModule) RequestVote(args RequestVoteArgs, reply *RequestVoteR
 
 }
 
+/*
+这段代码严格遵循论文中图2的算法（AppendEntries的Receive实现部分），而且注释得很好。
+注意，当代码注意到leader的LeaderCommit大于自己的自己的cm.commitIndex时，就会在cm.newCommitReadyChan上发送；
+这时follower意识到leader认为有额外的条目要提交。
+当leader通过AppendEntries发送日志条目时，会发生以下情况：
+1. 一个follower在它的日志中追加新的条目并将 success=true 返回给leader
+2. 作为结果，leader 会根据 follwer 更新 matchIndex。当足够数量的 follower 在 nextIndex 都有matchIndex时
+leader就会更新 commitIndex 并在下一个AE中发送给所有的follwers（在 leaderCommit 字段中）
+3. 当 followers 接收到一个超出他们之前所见的新的 leaderCommit 时，它们知道有新的日志条目已经提交，它们可以在通道上将其发送给他们的客户
+Q: 提交一个新命令需要多少次RPC往返?
+A: 两次；一次是 leader 发送下一个日志条目给 followers 以及 followers 返回 ack；二次是将发送更新 commitIndex 给 followers，然后 followers 将这些条目标记为已提交，并将他们发送到提交通道。
+*/
 func (cm *ConsensusModule) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
@@ -409,6 +423,40 @@ func (cm *ConsensusModule) AppendEntries(args AppendEntriesArgs, reply *AppendEn
 			cm.becomeFollower(args.Term)
 		}
 		cm.electionResetEvent = time.Now()
+		// 日志是否包含一个PrevLogIndex位置的条目，其任期是否匹配？请注意，在PrevLogIndex=-1的极端情况下，这肯定是真的。
+		if args.PrevLogIndex == -1 ||
+			(args.PrevLogIndex < len(cm.log)) && args.PrevLogTerm == cm.log[args.PrevLogIndex].Term {
+			reply.Success = true
+			// 找到插入点，从PrevLogIndex+1开始的现有日志和RPC发送的新条目之间存在任期不匹配的地方。
+			logInsertIndex := args.PrevLogIndex + 1
+			newEntriesIndex := 0
+
+			for {
+				if logInsertIndex >= len(cm.log) || newEntriesIndex >= len(args.Entries) {
+					break
+				}
+				if cm.log[logInsertIndex].Term != args.Entries[newEntriesIndex].Term {
+					break
+				}
+				logInsertIndex++
+				newEntriesIndex++
+			}
+			// 循环最后部分：
+			// - logInsertIndex 指向日志索引末尾位置，或者是在该索引上的任期与leader上的不匹配
+			// - newEntriesIndex 指向Entries的末尾位置，或者指向与相应的日志条目的任期不匹配的索引
+			if newEntriesIndex < len(args.Entries) {
+				cm.dlog("... inserting entries %v from index %d", args.Entries[newEntriesIndex:], logInsertIndex)
+				cm.log = append(cm.log[:logInsertIndex], args.Entries[newEntriesIndex:]...)
+				cm.dlog("... log is now: %v", cm.log)
+			}
+
+			// 赋值commitIndex
+			if args.LeaderCommit > cm.commitIndex {
+				cm.commitIndex = intMin(args.LeaderCommit, len(cm.log)-1)
+				cm.dlog("... setting commitIndex=%d", cm.commitIndex)
+				cm.newCommitReadyChan <- struct{}{}
+			}
+		}
 		reply.Success = true
 	}
 	reply.Term = cm.currentTerm
@@ -453,4 +501,11 @@ func (cm *ConsensusModule) commitChanSender() {
 		}
 	}
 	cm.dlog("commiteChanSender done")
+}
+
+func intMin(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
