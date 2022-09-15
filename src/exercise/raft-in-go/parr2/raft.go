@@ -59,6 +59,8 @@ Leader：leader 不会发出选举goroutine，但是会以每50毫秒来发送�
 1. 命令由客户端提交给leader。在raft对等体集群中，一个命令通常只提交给一个对等体（peer）
 2. leader复制这个命令给其它followers
 3. 一旦leader对命令被充分复制了即满足提交条件了（即大多数集群对等体在日志中都记录这个命令），这个命令就被提交并并通知到其它客户端有新提交。
+
+
 */
 
 type ConsensusModule struct {
@@ -213,12 +215,18 @@ func (cm *ConsensusModule) startElection() {
 	// 发送RV给其他节点
 	for _, peerId := range cm.peerIds {
 		go func(peerId int) {
+			cm.mu.Lock()
+			savedLastLogIndex, savedLastLogTerm := cm.lastLogIndexAndTerm()
+			cm.mu.Unlock()
 			args := RequestVoteArgs{
-				Term:        savedCurrentTerm,
-				CandidateId: cm.id,
+				Term:         savedCurrentTerm,
+				CandidateId:  cm.id,
+				LastLogIndex: savedLastLogIndex,
+				LastLogTerm:  savedLastLogTerm,
 			}
+			cm.dlog("sending RequestVote to %d: %+v", peerId, args)
+
 			var reply RequestVoteReply
-			cm.dlog("sensding RequestVote to %d: %+v", peerId, args)
 			if err := cm.server.Call(peerId, "ConsensusModule.RequestVote", args, &reply); err != nil {
 				cm.mu.Lock()
 				defer cm.mu.Unlock()
@@ -249,6 +257,15 @@ func (cm *ConsensusModule) startElection() {
 
 	// 运行另一个选举计时器，以防这次选举不成功
 	go cm.runElectionTimer()
+}
+
+func (cm *ConsensusModule) lastLogIndexAndTerm() (int, int) {
+	if len(cm.log) > 0 {
+		lastIndex := len(cm.log) - 1
+		return lastIndex, cm.log[lastIndex].Term
+	} else {
+		return -1, -1 // 哨兵机制
+	}
 }
 
 // 将该cm状态变更为follower并重置state，该操作必须在锁内
@@ -366,7 +383,8 @@ func (cm *ConsensusModule) RequestVote(args RequestVoteArgs, reply *RequestVoteR
 	if cm.state == Dead {
 		return nil
 	}
-	cm.dlog("RequestVote: %+v [currentTerm=%d, votedFor=%d]", args, cm.currentTerm, cm.votedFor)
+	lastLogIndex, lastLogTerm := cm.lastLogIndexAndTerm()
+	cm.dlog("RequestVote: %+v [currentTerm=%d, votedFor=%d, log index/term=(%d, %d)]", args, cm.currentTerm, cm.votedFor, lastLogIndex, lastLogTerm)
 
 	if args.Term > cm.currentTerm {
 		// 请求参数的任期比该cm大，说明该投票已过期
@@ -374,7 +392,8 @@ func (cm *ConsensusModule) RequestVote(args RequestVoteArgs, reply *RequestVoteR
 		cm.becomeFollower(args.Term)
 	}
 	// 调用者的任期和请求投票的任期一致并且该调用者还没有投票给其它节点请求，则投票成功
-	if cm.currentTerm == args.Term && (cm.votedFor == -1 || cm.votedFor == args.CandidateId) {
+	if cm.currentTerm == args.Term && (cm.votedFor == -1 || cm.votedFor == args.CandidateId) &&
+		(args.LastLogTerm > lastLogTerm && args.LastLogIndex >= lastLogIndex) {
 		reply.VoteGranted = true
 		cm.votedFor = args.CandidateId
 		cm.electionResetEvent = time.Now()
