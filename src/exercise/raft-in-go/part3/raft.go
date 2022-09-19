@@ -88,6 +88,9 @@ type ConsensusModule struct {
 	// newCommitReadyChan是一个内部通知通道，由向日志提交新条目的goroutine使用，以通知这些条目可以在commitChan上发送。
 	newCommitReadyChan chan struct{}
 
+	// 用于内部的通知channel，发送新的AE给followers时触发
+	triggerAEChan chan struct{}
+
 	// 需要持久化的信息
 	currentTerm int // 在所有服务器上持有的Raft状态
 	votedFor    int
@@ -319,6 +322,9 @@ func (cm *ConsensusModule) startLeader() {
 	}()
 }
 
+// 实际上不仅仅是等待50ms，还有等待事件的触发：
+// 1: 在cm.triggerAEChan发送数据
+// 2: 超时50马上
 func (cm *ConsensusModule) startLeader2() {
 	cm.state = Leader
 	// 初始化状态
@@ -337,7 +343,34 @@ func (cm *ConsensusModule) startLeader2() {
 		defer t.Stop()
 		for {
 			doSend := false
+			select {
+			case <-t.C:
+				doSend = true
+				// 重置计时器，在heartbeatTimeout之后再次触发
+				t.Stop()
+				t.Reset(heartbeatTimeout)
+			case _, ok := <-cm.triggerAEChan:
+				if ok {
+					doSend = true
+				} else {
+					return
+				}
+				// 重置heartbeatTimeout timer
+				if !t.Stop() {
+					<-t.C
+				}
+				t.Reset(heartbeatTimeout)
+			}
 
+			if doSend {
+				cm.mu.Lock()
+				if cm.state != Leader {
+					cm.mu.Unlock()
+					return
+				}
+				cm.mu.Unlock()
+				cm.leaderSendAEs()
+			}
 		}
 	}(50 * time.Millisecond)
 	go func() {
@@ -356,6 +389,83 @@ func (cm *ConsensusModule) startLeader2() {
 			cm.mu.Unlock()
 		}
 	}()
+}
+
+// leaderSendAEs 向所有的peers发送一轮AEs，收集它们的响应并调整相应的状态
+func (cm *ConsensusModule) leaderSendAEs() {
+	cm.mu.Lock()
+	if cm.state != Leader {
+		cm.mu.Unlock()
+		return
+	}
+	savedCurrentTerm := cm.currentTerm
+	cm.mu.Unlock()
+
+	for _, peerId := range cm.peerIds {
+		go func(peerId int) {
+			cm.mu.Lock()
+			ni := cm.nextIndex[peerId]
+			prevLogIndex := ni - 1
+			prevLogTerm := -1
+			if prevLogIndex >= 0 {
+				prevLogTerm = cm.log[prevLogIndex].Term
+			}
+			entries := cm.log[ni:]
+
+			args := AppendEntriesArgs{
+				Term:         savedCurrentTerm,
+				LeaderId:     cm.id,
+				PrevLogIndex: prevLogIndex,
+				PrevLogTerm:  prevLogTerm,
+				Entries:      entries,
+				LeaderCommit: cm.commitIndex,
+			}
+			cm.mu.Unlock()
+			cm.dlog("sending AppendEntries to %v: ni=%d, args=%+v", peerId, ni, args)
+
+			var reply AppendEntriesReply
+			if err := cm.server.Call(peerId, "ConsensusModule.AppendEntries", args, &reply); err == nil {
+				cm.mu.Lock()
+				defer cm.mu.Unlock()
+				if reply.Term > cm.currentTerm {
+					cm.dlog("term out of date in heartbeat reply")
+					cm.becomeFollower(reply.Term)
+					return
+				}
+
+				if cm.state == Leader && savedCurrentTerm == reply.Term {
+					if reply.Success {
+						cm.nextIndex[peerId] = ni + len(entries)
+						cm.matchIndex[peerId] = cm.nextIndex[peerId] - 1
+
+						savedCommitIndex := cm.commitIndex
+						for i := cm.commitIndex + 1; i < len(cm.log); i++ {
+							if cm.log[i].Term == cm.currentTerm {
+								matchCount := 1
+								for _, peerId := range cm.peerIds {
+									if cm.matchIndex[peerId] >= i {
+										matchCount++
+									}
+								}
+								if matchCount*2 > len(cm.peerIds)+1 {
+									cm.commitIndex = i
+								}
+							}
+						}
+						cm.dlog("AppendEntries reply from %d success: nextIndex := %v, matchIndex := %v; commitIndex := %d", peerId, cm.nextIndex, cm.matchIndex, cm.commitIndex)
+						if cm.commitIndex != savedCommitIndex {
+							cm.dlog("leader sets commitIndex := %d", cm.commitIndex)
+							// 通知
+							cm.newCommitReadyChan <- struct{}{}
+							cm.triggerAEChan <- struct{}{}
+						}
+					} else {
+
+					}
+				}
+			}
+		}(peerId)
+	}
 }
 
 func (cm *ConsensusModule) leaderSendHeartbeats() {
