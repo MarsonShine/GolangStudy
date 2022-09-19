@@ -294,11 +294,52 @@ func (cm *ConsensusModule) becomeFollower(term int) {
 /*
 赢得大多数节点的选票即可称为leader
 每50ms发送一个心跳请求
+这里目前有个问题，就是当选举过程中，当leader发现有新的command提交时，不会立即发送通知给followers；而是等待下一次轮询做判断，这是低效的。
+版本2尝试解决这个问题
 */
 func (cm *ConsensusModule) startLeader() {
 	cm.state = Leader
 	cm.dlog("becomes Leader; term=%d, log=%v", cm.currentTerm, cm.log)
 
+	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+		// 作为leader，需要一直发送心跳
+		for {
+			cm.leaderSendHeartbeats()
+			<-ticker.C
+
+			cm.mu.Lock()
+			if cm.state != Leader {
+				cm.mu.Unlock()
+				return
+			}
+			cm.mu.Unlock()
+		}
+	}()
+}
+
+func (cm *ConsensusModule) startLeader2() {
+	cm.state = Leader
+	// 初始化状态
+	for _, peerId := range cm.peerIds {
+		cm.nextIndex[peerId] = len(cm.log)
+		cm.matchIndex[peerId] = -1
+	}
+	cm.dlog("becomes Leader; term=%d, nextIndex=%v, matchIndex=%v; log=%v", cm.currentTerm, cm.nextIndex, cm.matchIndex, cm.log)
+	// 这个goroutine在后台运行并向对等体发送AE
+	// 每当在triggerAEChan上发送内容时
+	// 又或者每50毫秒一次，如果triggerAEChan上没有发生事件
+	go func(heartbeatTimeout time.Duration) {
+		// 立即发送AE给peers
+		cm.leaderSendAEs()
+		t := time.NewTimer(heartbeatTimeout)
+		defer t.Stop()
+		for {
+			doSend := false
+
+		}
+	}(50 * time.Millisecond)
 	go func() {
 		ticker := time.NewTicker(50 * time.Millisecond)
 		defer ticker.Stop()
