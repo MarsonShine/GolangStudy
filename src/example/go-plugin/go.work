@@ -1,0 +1,9 @@
+go 1.19
+
+use (
+	./common
+	./demo1
+	./demo1-plugins
+	./demo2
+	./demo2-plugins
+)
