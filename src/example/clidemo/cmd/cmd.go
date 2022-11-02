@@ -5,7 +5,12 @@ import (
 	"io"
 	"os"
 
+	"github.com/marsonshine/mscli/cmd/exec"
 	"github.com/spf13/cobra"
+)
+
+var (
+	info string
 )
 
 func NewDefaultMsCliCommand() *cobra.Command {
@@ -23,8 +28,24 @@ func NewMsCliCommand(in io.Reader, out, errout io.Writer) *cobra.Command {
 		Use:   "msctl",
 		Short: "msctl 是一个学习 go cli 实现的练习项目",
 		Long:  "主要是用来熟悉 cobra 以及 go 语言的使用，方便日后编写自己的 cli 工具",
-		Run:   func(cmd *cobra.Command, args []string) {},
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("hello msctl")
+		},
 	}
+	// 绑定可选参数配置
+	flags := cmds.PersistentFlags()
+	flags.StringVar(&info, "info", "basic description", "")
+
+	groups := CommandGroups{
+		{
+			Message: "Basic Commands Proxy:",
+			Commands: []*cobra.Command{
+				exec.NewCmdExec(in, out, errout),
+			},
+		},
+	}
+	groups.Add(cmds)
 
 	return cmds
 }
