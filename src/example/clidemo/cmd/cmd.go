@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/marsonshine/mscli/cmd/exec"
+	"github.com/marsonshine/mscli/cmd/new"
 	"github.com/spf13/cobra"
 )
 
@@ -42,6 +43,12 @@ func NewMsCliCommand(in io.Reader, out, errout io.Writer) *cobra.Command {
 			Message: "Basic Commands Proxy:",
 			Commands: []*cobra.Command{
 				exec.NewCmdExec(in, out, errout),
+			},
+		},
+		{
+			Message: "New Project Cli",
+			Commands: []*cobra.Command{
+				new.NewCmdNew(in, out, errout),
 			},
 		},
 	}

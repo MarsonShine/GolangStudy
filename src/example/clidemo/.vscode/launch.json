@@ -10,7 +10,8 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["exec","dotnet","--info"]
+            // "args": ["exec","dotnet","--info"]
+            "args": ["new","-r","http://192.168.11.6:10080/maoshuai/template.git","-p","marsonshine"]
         }
     ]
 }
