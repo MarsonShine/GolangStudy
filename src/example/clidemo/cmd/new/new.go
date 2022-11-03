@@ -1,11 +1,14 @@
 package new
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/marsonshine/mscli/util"
@@ -95,9 +98,49 @@ func renameGitFolder(folderName string, newFolderName string) {
 		fmt.Println("重命名失败，文件名不存在")
 		return
 	}
-	os.Rename(folderName, newFolderName)
+	if err := os.Rename(folderName, newFolderName); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func renameProjectPackageName(projectName string) {
-	// TODO
+	// 获取所有目标文件 .go
+	// 递归查询所有文件和文件夹
+	_ = filepath.Walk(projectName, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("包重命名失败：%v", err)
+			return err
+		}
+		var modName string
+		if filepath.Ext(info.Name()) == ".mod" {
+			modName = readModName(path)
+			return nil
+		}
+		if !info.IsDir() && (filepath.Ext(info.Name()) == ".go") {
+			// TODO packageName 变量化，目前是与projectName一致
+			renamePackageName(path, modName, projectName)
+			return nil
+		}
+		return nil
+	})
+}
+
+func renamePackageName(filepath, modName, packageName string) {
+	file, _ := os.Open(filepath)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "import (") {
+
+		}
+	}
+}
+
+func readModName(filepath string) string {
+	file, _ := os.Open(filepath)
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		modName := scanner.Text()
+		return strings.Trim(strings.ReplaceAll(modName, "module", ""), " ")
+	}
+	return ""
 }
