@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -104,17 +106,25 @@ func renameGitFolder(folderName string, newFolderName string) {
 }
 
 func renameProjectPackageName(projectName string) {
+	// 首先要找出 mod 的包名
+	var modName string
+	files, err := ioutil.ReadDir(projectName)
+	if err != nil {
+		fmt.Printf("包重命名失败：%v", err)
+		return
+	}
+	for _, file := range files {
+		if file.Name() == "go.mod" {
+			modName = readModName(path.Join(projectName, file.Name()))
+			break
+		}
+	}
 	// 获取所有目标文件 .go
 	// 递归查询所有文件和文件夹
 	_ = filepath.Walk(projectName, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("包重命名失败：%v", err)
 			return err
-		}
-		var modName string
-		if filepath.Ext(info.Name()) == ".mod" {
-			modName = readModName(path)
-			return nil
 		}
 		if !info.IsDir() && (filepath.Ext(info.Name()) == ".go") {
 			// TODO packageName 变量化，目前是与projectName一致
@@ -128,11 +138,40 @@ func renameProjectPackageName(projectName string) {
 func renamePackageName(filepath, modName, packageName string) {
 	file, _ := os.Open(filepath)
 	scanner := bufio.NewScanner(file)
+	newBuffer := make([]byte, len(scanner.Bytes()))
 	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "import (") {
-
+		if strings.Contains(scanner.Text(), "import") {
+			newBuffer = append(newBuffer, bytes.ReplaceAll(scanner.Bytes(), []byte(modName), []byte(packageName))...)
+			newBuffer = append(newBuffer, []byte("\n")...)
+			// 找到import结束范围
+			for scanner.Scan() {
+				if strings.Contains(scanner.Text(), ")") {
+					break
+				}
+				newBuffer = append(newBuffer, bytes.ReplaceAll(scanner.Bytes(), []byte(modName), []byte(packageName))...)
+				newBuffer = append(newBuffer, []byte("\n")...)
+				continue
+			}
+			continue
 		}
+		newBuffer = append(newBuffer, scanner.Bytes()...)
+		newBuffer = append(newBuffer, []byte("\n")...)
 	}
+	os.WriteFile(filepath, newBuffer, 0644)
+}
+
+func rewrite(filepath, modName, packageName string) {
+	file, _ := os.Open(filepath)
+	fi, _ := file.Stat()
+	scanner := bufio.NewScanner(file)
+	newBuffer := make([]byte, 0, fi.Size())
+	for scanner.Scan() {
+		newBuffer = append(newBuffer, scanner.Bytes()...)
+		newBuffer = append(newBuffer, []byte("\n")...)
+	}
+	os.WriteFile(filepath, newBuffer, 0644)
+
+	fmt.Printf("origin: %d;  new: %d", fi.Size(), len(newBuffer))
 }
 
 func readModName(filepath string) string {
@@ -140,7 +179,7 @@ func readModName(filepath string) string {
 	scanner := bufio.NewScanner(file)
 	if scanner.Scan() {
 		modName := scanner.Text()
-		return strings.Trim(strings.ReplaceAll(modName, "module", ""), " ")
+		return strings.Trim(strings.ReplaceAll(modName, "module", ""), " ") // only go1.18+
 	}
 	return ""
 }
