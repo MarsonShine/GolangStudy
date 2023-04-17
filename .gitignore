@@ -5,3 +5,4 @@ src/tutorials/main
 tmp/
 src/example/gologdemo/tmp/logs
 *logs
+*.sum
