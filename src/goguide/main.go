@@ -29,7 +29,11 @@ func main() {
 	// reflectExample()
 	// editReflectValue()
 	// editAddressReflectValue()
-	condSync()
+	// condSync()
+
+	// 将字符串转成utf8编码
+	s := "你好jsih%%$123dAE!@#SAZXFG[]askdo"
+	fmt.Println([]byte(s))
 }
 
 type Handler struct {
