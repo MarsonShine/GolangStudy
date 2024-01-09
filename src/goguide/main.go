@@ -34,6 +34,9 @@ func main() {
 	// 将字符串转成utf8编码
 	s := "你好jsih%%$123dAE!@#SAZXFG[]askdo"
 	fmt.Println([]byte(s))
+
+	runes := []rune(s)
+	fmt.Println(runes)
 }
 
 type Handler struct {
