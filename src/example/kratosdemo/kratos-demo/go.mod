@@ -9,8 +9,7 @@ require (
 	github.com/go-kratos/kratos v0.6.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.4 // indirect
+	github.com/golang/protobuf v1.5.0
 	github.com/google/wire v0.4.0
 	github.com/hashicorp/consul/api v1.8.1
 	github.com/onsi/ginkgo v1.14.2 // indirect
@@ -20,6 +19,6 @@ require (
 	golang.org/x/sys v0.0.0-20210104204734-6f8348627aad // indirect
 	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d
 	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
